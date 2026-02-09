@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,6 @@ interface Props {
   isFromPagoFacil?: boolean;
 }
 
-// Helper para formatear números con separador de miles
 const formatNumber = (value: number, decimals: number = 2): string => {
   return value.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
@@ -20,9 +20,7 @@ const formatNumber = (value: number, decimals: number = 2): string => {
   });
 };
 
-// E) Helper para parsear números con comas (quitar comas, permitir punto)
 const parseFormattedNumber = (value: string): number => {
-  // Quitar comas y parsear
   const cleaned = value.replace(/,/g, '');
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : parsed;
@@ -31,42 +29,64 @@ const parseFormattedNumber = (value: string): number => {
 export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = false, isFromPagoFacil = false }: Props) {
 
   const isPagoFacilD = isFromPagoFacil && !isNoDomiciliado;
-
   const isPagoFacilND = isFromPagoFacil && isNoDomiciliado;
-  const isNDManual = isNoDomiciliado && !isFromPagoFacil; // ND y no PF
-
-
+  const isNDManual = isNoDomiciliado && !isFromPagoFacil;
 
   const camposBloqueados = isFromPagoFacil;
 
+  // ---- useEffect SOLO para ND Manual ----
+  // Recalcula igv, igvSoles y totalObligacion cuando cambian los inputs editables
+  const prevCalcRef = useRef({ igv: -1, igvSoles: -1, total: -1 });
 
-  // E) Para ND: usar input type="text" con formato de comas
-  const handleMontoChange = (field: 'montoAfecto' | 'noAfectoImpuestos' | 'igv', value: string) => {
-    // Si es ND, parsear número con comas
-    const numValue = isNoDomiciliado ? parseFormattedNumber(value) : (parseFloat(value) || 0);
+  useEffect(() => {
+    if (!isNDManual) return;
+
+    const montoAfecto = formData.montoAfecto || 0;
+    const tipoCambio = formData.tipoCambio || 0;
+    const noAfecto = formData.noAfectoImpuestos || 0;
+    const otrosImp = formData.otrosImpuestos || 0;
+
+    // IGV = 18% de montoAfecto
+    const newIgv = Math.round(montoAfecto * 0.18 * 100) / 100;
+    // IGV en soles (informativo)
+    const newIgvSoles = Math.round(newIgv * tipoCambio * 100) / 100;
+    // Total obligación
+    const newTotal = Math.round((montoAfecto + noAfecto + newIgv + otrosImp) * 100) / 100;
+
+    const prev = prevCalcRef.current;
+    if (prev.igv === newIgv && prev.igvSoles === newIgvSoles && prev.total === newTotal) return;
+
+    prevCalcRef.current = { igv: newIgv, igvSoles: newIgvSoles, total: newTotal };
+
+    if (formData.igv !== newIgv) onChange('igv', newIgv);
+    if (formData.igvSoles !== newIgvSoles) onChange('igvSoles', newIgvSoles);
+    if (formData.totalObligacion !== newTotal) onChange('totalObligacion', newTotal);
+  }, [isNDManual, formData.montoAfecto, formData.tipoCambio, formData.noAfectoImpuestos, formData.otrosImpuestos]);
+
+  // Handler de montos para IGV D (domiciliado) — sin cambios en lógica
+  const handleMontoChangeD = (field: 'montoAfecto' | 'noAfectoImpuestos' | 'igv', value: string) => {
+    const numValue = parseFloat(value) || 0;
     onChange(field, numValue);
 
-    // Recalcular total automáticamente
     const montoAfecto = field === 'montoAfecto' ? numValue : formData.montoAfecto;
     const noAfecto = field === 'noAfectoImpuestos' ? numValue : formData.noAfectoImpuestos;
     const igv = field === 'igv' ? numValue : formData.igv;
-    const otrosImpuestos = formData.otrosImpuestos;
+    const otrosImpuestos = formData.otrosImpuestos || 0;
 
     const total = montoAfecto + noAfecto + igv + otrosImpuestos;
     onChange('totalObligacion', total);
     onChange('montoDistribucion', total);
   };
 
-  // E) Para ND: manejar input con formato de comas
-  const handleFormattedInputChange = (field: 'montoAfecto' | 'noAfectoImpuestos' | 'igv', inputValue: string) => {
-    // Permitir solo números, comas y punto decimal
-    const cleaned = inputValue.replace(/[^0-9.,]/g, '');
-    handleMontoChange(field, cleaned);
+  // Handler de montoAfecto para ND Manual (solo actualiza montoAfecto, useEffect hace el resto)
+  const handleMontoAfectoND = (value: string) => {
+    const numValue = parseFormattedNumber(value);
+    onChange('montoAfecto', numValue);
   };
 
-  // Para ND: Total obligación = Base USD + IGV USD
+  // Total obligación display
   const totalObligacionDisplay = isNoDomiciliado
-    ? formData.montoAfecto + formData.igv
+    ? (formData.montoAfecto || 0) + (formData.noAfectoImpuestos || 0) + (formData.igv || 0) + (formData.otrosImpuestos || 0)
     : formData.totalObligacion;
 
   const monedaSymbol = isNoDomiciliado ? 'US$' : 'S/';
@@ -96,37 +116,31 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
             <Label className="text-xs text-muted-foreground">
               Monto afecto a impuesto {isNoDomiciliado && '(USD)'}
             </Label>
-            {/* E) Para ND: input tipo text con formato de comas */}
             <Input
               type={isNoDomiciliado ? "text" : "number"}
               value={isNoDomiciliado ? formatNumber(formData.montoAfecto) : (formData.montoAfecto || '')}
-              onChange={(e) => isNoDomiciliado
-                ? handleFormattedInputChange('montoAfecto', e.target.value)
-                : handleMontoChange('montoAfecto', e.target.value)
-              }
-              //NILTON
+              onChange={(e) => {
+                if (isNoDomiciliado) {
+                  // ND Manual: solo actualiza montoAfecto, useEffect calcula el resto
+                  // ND PagoFacil: bloqueado, no llega aquí
+                  handleMontoAfectoND(e.target.value);
+                } else {
+                  handleMontoChangeD('montoAfecto', e.target.value);
+                }
+              }}
               disabled={camposBloqueados}
-              // className={camposBloqueados ? "bg-muted/50" : ""}
-              // className="font-mono text-right  "
-
-              className={`font-mono text-right ${camposBloqueados ? "bg-muted/50" : "bg-white"
-                }`}
-
-
-
+              className={`font-mono text-right ${camposBloqueados ? "bg-muted/50" : "bg-white"}`}
               placeholder="0.00"
             />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">No afecto a impuestos</Label>
-            {/* E) Para ND: input tipo text con formato de comas */}
             <Input
               type={isNoDomiciliado ? "text" : "number"}
-              value={isNoDomiciliado ? formatNumber(formData.noAfectoImpuestos) : (formData.noAfectoImpuestos || '')}
-              onChange={(e) => isNoDomiciliado
-                ? handleFormattedInputChange('noAfectoImpuestos', e.target.value)
-                : handleMontoChange('noAfectoImpuestos', e.target.value)
-              }
+              value={isNoDomiciliado ? formatNumber(formData.noAfectoImpuestos || 0) : (formData.noAfectoImpuestos || '')}
+              onChange={(e) => {
+                if (!isNoDomiciliado) handleMontoChangeD('noAfectoImpuestos', e.target.value);
+              }}
               disabled
               className="font-mono text-right bg-muted/50"
               placeholder="0.00"
@@ -136,15 +150,12 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
             <Label className="text-xs text-muted-foreground">
               Impuesto a las ventas (IGV) {isNoDomiciliado && '(USD)'}
             </Label>
-            {/* E) Para ND: input tipo text con formato de comas */}
             <Input
               type={isNoDomiciliado ? "text" : "number"}
               value={isNoDomiciliado ? formatNumber(formData.igv) : (formData.igv || '')}
-              onChange={(e) => isNoDomiciliado
-                ? handleFormattedInputChange('igv', e.target.value)
-                : handleMontoChange('igv', e.target.value)
-              }
-
+              onChange={(e) => {
+                if (!isNoDomiciliado) handleMontoChangeD('igv', e.target.value);
+              }}
               disabled
               className="font-mono text-right bg-muted/50"
               placeholder="0.00"
@@ -154,7 +165,7 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
             <Label className="text-xs text-muted-foreground">Otros impuestos / Retenciones</Label>
             <Input
               type="number"
-              value={formData.otrosImpuestos || ''}
+              value={formData.otrosImpuestos || 0}
               disabled
               className="font-mono text-right bg-muted/50"
               placeholder="0.00"
@@ -170,14 +181,38 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
           </div>
         </div>
 
-        {/* Mostrar IGV en soles solo para ND (referencia para distribución) */}
+        {/* Tipo de cambio — SOLO para ND */}
         {isNoDomiciliado && (
           <div className="mt-4 pt-4 border-t border-border">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs text-muted-foreground">IGV en Soles (para distribución contable y pago SUNAT)</Label>
+                <Label className="text-xs text-muted-foreground">Tipo de cambio (SBS)</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={formData.tipoCambio || ''}
+                  onChange={(e) => onChange('tipoCambio', parseFloat(e.target.value) || 0)}
+                  disabled={isPagoFacilND}
+                  className={`font-mono text-right ${isPagoFacilND ? "bg-muted/50" : "bg-white"}`}
+                  placeholder="0.000"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* IGV en soles — SOLO para ND (informativo, NO afecta total amarillo) */}
+        {isNoDomiciliado && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">IGV en Soles (informativo – para distribución contable y pago SUNAT)</Label>
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md px-3 py-2 text-right font-mono font-semibold">
-                  S/ {formatNumber(formData.totalObligacion)}
+                  S/ {formatNumber(
+                    isNDManual
+                      ? (formData.igvSoles || 0)
+                      : (formData.igvSoles || formData.totalObligacion || 0)
+                  )}
                 </div>
               </div>
             </div>
