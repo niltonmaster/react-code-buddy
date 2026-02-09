@@ -196,35 +196,36 @@ export default function DevengadosIGVListPage() {
 
   // Copiar devengado (para ND copia el grupo completo)
   const handleCopiar = (dev: DevengadoRecord) => {
-    if (dev.tipoDevengado === 'NO_DOMICILIADO' && dev.groupId) {
-      // Obtener grupo completo
-      const grupo = getDevengadoNDGroup(dev.groupId);
-      const principal = grupo.find(g => g.rol === 'PRINCIPAL');
-      
-      if (principal) {
-        // Navegar a registrar devengado con datos precargados para crear nuevo grupo
-        navigate('/devengado-igv', {
-          state: {
-            fromPagoFacilND: true,
-            fromLista: true,
-            copyMode: true,
-            pagoFacilNDData: {
-              periodoTributario: principal.periodo ? (() => {
-                const [y, m] = principal.periodo.split('-');
-                return `${m}-${y}`; // Convert YYYY-MM to MM-YYYY for UI
-              })() : '09-2025',
-              proveedor: principal.proveedor,
-              facturaNro: '', // Se generará nuevo
-              fechaPagoServicio: principal.fechaRegistro,
-              periodoComision: principal.observacion?.match(/\d{4}-\d{2}/)?.[0] || '',
-              baseUsd: principal.montoBaseUSD || 0,
-              igvUsd: principal.montoIgvUSD || 0,
-              tipoCambio: 3.5, // Default
-              totalIgvSoles: principal.igvSoles || 0,
-            }
-          }
-        });
+    if (dev.tipoDevengado === 'NO_DOMICILIADO') {
+      // Para ND: siempre tomar el registro PRINCIPAL (no el hijo IGV -1)
+      let principal: DevengadoRecord | undefined;
+      if (dev.groupId) {
+        const grupo = getDevengadoNDGroup(dev.groupId);
+        principal = grupo.find(g => g.rol === 'PRINCIPAL') || dev;
+      } else {
+        principal = dev;
       }
+
+      // Navegar como COPIA MANUAL precargada (NO como Pago Fácil)
+      navigate('/devengado-igv', {
+        state: {
+          fromLista: true,
+          copyMode: true,
+          tipoDevengadoLista: 'NO_DOMICILIADO',
+          copyDataND: {
+            periodoTributario: principal.periodo ? (() => {
+              const [y, m] = principal.periodo.split('-');
+              return `${m}-${y}`;
+            })() : '09-2025',
+            proveedor: principal.proveedor,
+            fechaPagoServicio: principal.fechaRegistro,
+            baseUsd: principal.montoBaseUSD || 0,
+            igvUsd: principal.montoIgvUSD || 0,
+            totalIgvSoles: principal.igvSoles || 0,
+            tipoCambio: 3.5
+          }
+        }
+      });
     } else {
       // Para IGV D, copiar normal (abrir con datos precargados sin ID)
       navigate('/devengado-igv', {
