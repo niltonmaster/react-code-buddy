@@ -36,6 +36,16 @@ interface ExtendedState extends DevengadoState {
   fromPagoFacilND?: boolean;
   pagoFacilNDData?: DevengadoNDState['pagoFacilNDData'];
   tipoDevengadoLista?: 'DOMICILIADO' | 'NO_DOMICILIADO';
+  copyMode?: boolean;
+  copyDataND?: {
+    periodoTributario: string;
+    proveedor: string;
+    fechaPagoServicio: string;
+    baseUsd: number;
+    igvUsd: number;
+    totalIgvSoles: number;
+    tipoCambio: number;
+  };
 }
 
 export function DevengadoIGV() {
@@ -53,12 +63,15 @@ export function DevengadoIGV() {
   const fromLista = state?.fromLista ?? false;
   const pagoFacilNDData = state?.pagoFacilNDData;
   const tipoDevengadoLista = state?.tipoDevengadoLista;
+  const copyMode = state?.copyMode ?? false;
+  const copyDataND = state?.copyDataND;
 
   // Determinar si es modo No Domiciliado (desde Pago Fácil ND o desde lista ND)
   const isNoDomiciliado = fromPagoFacilND || tipoDevengadoLista === 'NO_DOMICILIADO';
 
   // Determinar si viene de Pago Fácil (D o ND) - campos deben estar deshabilitados
-  const isFromPagoFacil = fromPagoFacil || (fromPagoFacilND && Boolean(pagoFacilNDData));
+  // IMPORTANTE: copyMode === true → NO es Pago Fácil, es copia manual editable
+  const isFromPagoFacil = copyMode ? false : (fromPagoFacil || (fromPagoFacilND && Boolean(pagoFacilNDData)));
 
   // Si no viene un periodo explícito (ej. navegación manual desde la lista),
   // sugerimos el mes siguiente al último devengado guardado DEL MISMO TIPO.
@@ -82,15 +95,19 @@ export function DevengadoIGV() {
     return `${mm}-${nextYear}`; // UI format MM-YYYY
   })();
 
-  // Usar periodo de ND si viene de Pago Fácil ND (con datos), sino usar suggestedPeriodo
+  // Usar periodo de ND si viene de Pago Fácil ND (con datos) o de copia ND, sino usar suggestedPeriodo
   const periodoTributario = (isNoDomiciliado && pagoFacilNDData)
     ? pagoFacilNDData.periodoTributario
-    : (state?.periodoTributario ?? suggestedPeriodo);
+    : (copyMode && copyDataND)
+      ? copyDataND.periodoTributario
+      : (state?.periodoTributario ?? suggestedPeriodo);
 
   // El importe para ND es el totalIgvSoles (en soles, entero)
   const importeIGV = (isNoDomiciliado && pagoFacilNDData)
     ? pagoFacilNDData.totalIgvSoles
-    : (state?.importeIGV ?? 0);
+    : (copyMode && copyDataND)
+      ? copyDataND.totalIgvSoles
+      : (state?.importeIGV ?? 0);
 
   const [currentPeriodo, setCurrentPeriodo] = useState(periodoTributario);
   const [currentMonto, setCurrentMonto] = useState(importeIGV);
@@ -158,6 +175,47 @@ export function DevengadoIGV() {
 
         , tipoCambio: pagoFacilNDData.tcSbs,      // <-- importante
         igvSoles: pagoFacilNDData.igvUsd * pagoFacilNDData.tcSbs
+      };
+    } else if (copyMode && copyDataND && tipoDevengadoLista === 'NO_DOMICILIADO') {
+      // Modo COPIA ND desde Lista — precargado pero EDITABLE (igual que ND manual)
+      const igvCalc = Math.round(copyDataND.baseUsd * 0.18 * 100) / 100;
+      const igvSolesCalc = Math.round(igvCalc * copyDataND.tipoCambio * 100) / 100;
+      const totalObl = Math.round((copyDataND.baseUsd + igvCalc) * 100) / 100;
+
+      return {
+        // Tab 1
+        proveedor: copyDataND.proveedor,
+        ruc: '',
+        entidad: PARAMS_DEVENGADO_IGV_ND.entidad,
+        tipoDocumento: PARAMS_DEVENGADO_IGV_ND.tipoDocumento,
+        pagarA: copyDataND.proveedor,
+        documentoNumero: '',
+        fechaRegistro: getFechaHoy(),
+        fechaEmision: copyDataND.fechaPagoServicio,
+        fechaRecepcion: copyDataND.fechaPagoServicio,
+        fechaVencimiento: copyDataND.fechaPagoServicio,
+        fechaProgramacionPago: copyDataND.fechaPagoServicio,
+        unidadNegocio: PARAMS_DEVENGADO_IGV_ND.unidadNegocioNombre,
+        tipoServicio: PARAMS_DEVENGADO_IGV_ND.tipoServicio,
+        tipoPago: 'Débito en cuenta',
+        glosa: `COMISIÓN DE ADMINISTRACIÓN DE CARTERA ${mesNombre} ${currentPeriodo.split('-')[1]} – ${copyDataND.proveedor}`,
+        // Tab 2 - Montos en USD (editables)
+        monedaDocumento: 'USD',
+        montoAfecto: copyDataND.baseUsd,
+        noAfectoImpuestos: 0,
+        igv: igvCalc,
+        otrosImpuestos: 0,
+        totalObligacion: totalObl,
+        monedaPago: 'Local',
+        cuentaBancaria: '',
+        generarPagoAutomatico: true,
+        // Tab 3
+        cuentaContable: `${PARAMS_DEVENGADO_IGV_ND.cuentaContable} – ${PARAMS_DEVENGADO_IGV_ND.cuentaContableNombre}`,
+        centroCosto: `${PARAMS_DEVENGADO_IGV_ND.centroCostoCodigo} – ${PARAMS_DEVENGADO_IGV_ND.centroCostoNombre}`,
+        persona: copyDataND.proveedor,
+        montoDistribucion: totalObl,
+        tipoCambio: copyDataND.tipoCambio,
+        igvSoles: igvSolesCalc
       };
     } else if (fromPagoFacil) {
       // Modo IGV Domiciliado normal
@@ -635,7 +693,8 @@ export function DevengadoIGV() {
           </h1>
           <p className="text-sm opacity-80">
             Periodo: {currentPeriodo} | RUC: 20421413216
-            {(isNoDomiciliado || originalTipoDevengado === 'NO_DOMICILIADO') && ' | Origen: Pago Fácil IGV ND (1041)'}
+            {(isNoDomiciliado || originalTipoDevengado === 'NO_DOMICILIADO') && !copyMode && ' | Origen: Pago Fácil IGV ND (1041)'}
+            {copyMode && isNoDomiciliado && ' | Origen: Copia desde registro existente'}
           </p>
         </div>
       </div>
@@ -647,11 +706,13 @@ export function DevengadoIGV() {
             <div>
               <h3 className="font-semibold">Cargar configuración</h3>
               <p className="text-sm text-muted-foreground">
-                {isFromPagoFacil
-                  ? (isNoDomiciliado
-                    ? 'La información fue cargada automáticamente desde Pago Fácil IGV No Domiciliado.'
-                    : 'La información fue cargada automáticamente desde Pago Fácil.')
-                  : 'Complete los datos o traiga la información del mes anterior.'}
+                {copyMode
+                  ? 'Se cargó información base desde un registro existente. Ajuste los campos según sustento.'
+                  : isFromPagoFacil
+                    ? (isNoDomiciliado
+                      ? 'La información fue cargada automáticamente desde Pago Fácil IGV No Domiciliado.'
+                      : 'La información fue cargada automáticamente desde Pago Fácil.')
+                    : 'Complete los datos o traiga la información del mes anterior.'}
               </p>
             </div>
             <Button
