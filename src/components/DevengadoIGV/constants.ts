@@ -1,0 +1,153 @@
+export const PARAMS_DEVENGADO_IGV = {
+  proveedorCodigo: '8101',
+  proveedorNombre: 'SUNAT/BANCO DE LA NACION',
+  ruc: '20131312955',
+  entidad: 'FCR',
+  tipoDocumento: 'Impuestos Propios',
+  centroCostoCodigo: '78',
+  centroCostoNombre: 'CONTABILIDAD',
+  unidadNegocioCodigo: 'FCR-DL 19990',
+  unidadNegocioNombre: 'FCR-DL 19990',
+  tipoServicioCodigo: 'NO_AFECTO',
+  tipoServicioNombre: 'No afecto a ninguna',
+  cuentaContable: '14011101',
+  cuentaContableNombre: 'IGV - Cuenta Propia'
+};
+
+// Constantes específicas para IGV No Domiciliado
+export const PARAMS_DEVENGADO_IGV_ND = {
+  tipoDocumento: 'No Domiciliado',
+  tipoServicio: 'IGV No Domiciliado',
+  codigoTributo: '1041',
+  entidad: 'FCR',
+  centroCostoCodigo: '78',
+  centroCostoNombre: 'CONTABILIDAD',
+  unidadNegocioCodigo: 'FCR-MACROFONDO',
+  unidadNegocioNombre: 'FCR-MACROFONDO',
+  cuentaContable: '14011102',
+  cuentaContableNombre: 'IGV - No Domiciliados'
+};
+
+export const FIELD_CONFIG_DEVENGADO = {
+  proveedor: { disabled: true },
+  ruc: { disabled: true },
+  entidad: { disabled: true },
+  tipoDocumento: { disabled: true },
+  centroCosto: { disabled: true },
+  unidadNegocio: { disabled: true },
+  tipoServicio: { disabled: false },
+  glosa: { disabled: false },
+  fechas: { disabled: false },
+  tipoPago: { disabled: false },
+  numeroDocumento: { disabled: false }
+};
+
+export interface DevengadoState {
+  fromPagoFacil: boolean;
+  periodoTributario: string;
+  importeIGV: number;
+}
+
+// Interface para datos provenientes de Pago Fácil ND
+export interface PagoFacilNDPayload {
+  periodoTributario: string;
+  codigoTributo: string;
+  tributo: string;
+  importePagarSoles: number;
+  facturaNro: string;
+  proveedor: string;
+  fechaPagoServicio: string;
+  tcSunatVenta: number;
+  expedienteNro: string;
+  igvUsd: number;
+  baseUsd: number;
+  totalFacturaSoles: number;
+  igvSoles: number;
+  redondeo: number;
+  totalIgvSoles: number;
+  tcSbs: number;
+  periodoComision: string;
+  fechaEmisionLima: string;
+}
+
+export interface DevengadoNDState {
+  fromPagoFacilND: boolean;
+  pagoFacilNDData: PagoFacilNDPayload;
+}
+
+export interface DevengadoFormData {
+  // Tab 1 - Información General
+  proveedor: string;
+  ruc: string;
+  entidad: string;
+  tipoDocumento: string;
+  pagarA: string;
+  documentoNumero: string;
+  fechaRegistro: string;
+  fechaEmision: string;
+  fechaRecepcion: string;
+  fechaVencimiento: string;
+  fechaProgramacionPago: string;
+  unidadNegocio: string;
+  tipoServicio: string;
+  tipoPago: string;
+  glosa: string;
+  // Tab 2 - Información Monetaria
+  monedaDocumento: string;
+  montoAfecto: number;
+  noAfectoImpuestos: number;
+  igv: number;
+  otrosImpuestos: number;
+  totalObligacion: number;
+  monedaPago: string;
+  cuentaBancaria: string;
+  generarPagoAutomatico: boolean;
+  // Tab 3 - Distribución Contable
+  cuentaContable: string;
+  centroCosto: string;
+  persona: string;
+  montoDistribucion: number;
+
+
+
+  tipoCambio?: number;   // <-- NUEVO
+  igvSoles?: number;     // <-- NUEVO (solo para ND)
+
+}
+
+export function getDocumentoNumeroSugerido(periodoTributario: string): string {
+  const [mes, año] = periodoTributario.split('-');
+  const mesNombre = getMesNombre(mes).substring(0, 3);
+  return `IGVFCR${mesNombre}${año}`;
+}
+
+export function getFechaHoy(): string {
+  const hoy = new Date();
+  const dia = hoy.getDate().toString().padStart(2, '0');
+  const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
+  const año = hoy.getFullYear();
+  return `${dia}/${mes}/${año}`;
+}
+
+export function getFechaFormatoInput(periodoTributario: string): string {
+  const [mes, año] = periodoTributario.split('-');
+  const ultimoDia = new Date(parseInt(año), parseInt(mes), 0).getDate();
+  return `${año}-${mes}-${ultimoDia.toString().padStart(2, '0')}`;
+}
+
+export function getUltimoDiaMes(periodoTributario: string): string {
+  const [mes, año] = periodoTributario.split('-');
+  const mesNum = parseInt(mes, 10);
+  const añoNum = parseInt(año, 10);
+  const ultimoDia = new Date(añoNum, mesNum, 0).getDate();
+  return `${ultimoDia}/${mes}/${año}`;
+}
+
+export function getMesNombre(mes: string): string {
+  const meses: Record<string, string> = {
+    '01': 'ENERO', '02': 'FEBRERO', '03': 'MARZO', '04': 'ABRIL',
+    '05': 'MAYO', '06': 'JUNIO', '07': 'JULIO', '08': 'AGOSTO',
+    '09': 'SETIEMBRE', '10': 'OCTUBRE', '11': 'NOVIEMBRE', '12': 'DICIEMBRE'
+  };
+  return meses[mes] || mes;
+}

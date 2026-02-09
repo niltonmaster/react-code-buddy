@@ -5,6 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import DevengadoIGVPage from "./pages/DevengadoIGVPage";
+import DevengadosIGVListPage from "./pages/DevengadosIGVListPage";
+import TesoreriaPrepagoPage from "./pages/TesoreriaPrepagoPage";
+import TesoreriaPagosPage from "./pages/TesoreriaPagosPage";
+import PagoFacilNDPage from "./pages/PagoFacilNDPage";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +21,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/devengado-igv" element={<DevengadoIGVPage />} />
+          <Route path="/devengados-igv" element={<DevengadosIGVListPage />} />
+          <Route path="/tesoreria/prepago" element={<TesoreriaPrepagoPage />} />
+          <Route path="/tesoreria/pagos" element={<TesoreriaPagosPage />} />
+          <Route path="/pago-facil-igv-nd" element={<PagoFacilNDPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
