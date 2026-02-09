@@ -695,7 +695,7 @@ export function DevengadoIGV() {
           </TabsContent>
 
           <TabsContent value="distribucion">
-            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} />
+            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} />
           </TabsContent>
         </Tabs>
 
