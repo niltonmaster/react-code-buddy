@@ -10,7 +10,7 @@ export const PARAMS_DEVENGADO_IGV = {
   unidadNegocioNombre: 'FCR-DL 19990',
   tipoServicioCodigo: 'NO_AFECTO',
   tipoServicioNombre: 'No afecto a ninguna',
-  cuentaContable: '14011101',
+  cuentaContable: '4011101',
   cuentaContableNombre: 'IGV - Cuenta Propia'
 };
 
@@ -24,8 +24,8 @@ export const PARAMS_DEVENGADO_IGV_ND = {
   centroCostoNombre: 'CONTABILIDAD',
   unidadNegocioCodigo: 'FCR-MACROFONDO',
   unidadNegocioNombre: 'FCR-MACROFONDO',
-  cuentaContable: '14011102',
-  cuentaContableNombre: 'IGV - No Domiciliados'
+  cuentaContable: '4699108',
+  cuentaContableNombre: 'Comisiones de Portafolio'
 };
 
 export const FIELD_CONFIG_DEVENGADO = {

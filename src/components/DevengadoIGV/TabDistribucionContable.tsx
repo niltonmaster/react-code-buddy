@@ -1,40 +1,32 @@
 import { Card } from '@/components/ui/card';
-import { DevengadoFormData, PARAMS_DEVENGADO_IGV } from './constants';
+import { DevengadoFormData, PARAMS_DEVENGADO_IGV, PARAMS_DEVENGADO_IGV_ND } from './constants';
 
 interface Props {
   formData: DevengadoFormData;
   isFromPagoFacil?: boolean;
+  isNoDomiciliado?: boolean;
 }
 
-export function TabDistribucionContable({ formData, isFromPagoFacil = false }: Props) {
+export function TabDistribucionContable({ formData, isFromPagoFacil = false, isNoDomiciliado = false }: Props) {
+  // Para ND: el monto de distribución es el total obligación visible (suma USD)
+  // Para D: usar montoDistribucion directamente (ya viene sincronizado del padre)
+  const montoDisplay = isNoDomiciliado
+    ? (formData.montoAfecto || 0) + (formData.noAfectoImpuestos || 0) + (formData.igv || 0) + (formData.otrosImpuestos || 0)
+    : formData.montoDistribucion;
+
+  // Cuentas contables según tipo
+  const params = isNoDomiciliado ? PARAMS_DEVENGADO_IGV_ND : PARAMS_DEVENGADO_IGV;
+  const cuentaCodigo = params.cuentaContable;
+  const cuentaNombre = params.cuentaContableNombre;
+  const centroCostoCodigo = params.centroCostoCodigo;
+  const centroCostoNombre = params.centroCostoNombre;
+  const proveedorCodigo = isNoDomiciliado ? '' : PARAMS_DEVENGADO_IGV.proveedorCodigo;
+  const proveedorNombre = isNoDomiciliado ? (formData.proveedor || '') : PARAMS_DEVENGADO_IGV.proveedorNombre;
+
+  const monedaSymbol = isNoDomiciliado ? 'US$' : 'S/';
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Info superior */}
-
-      {/* <Card className="p-5">
-        <h3 className="section-title mb-4">Resumen de distribución</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-3 bg-muted/50 rounded-md">
-            <p className="text-xs text-muted-foreground">Total a distribuir</p>
-            <p className="text-xl font-bold font-mono">
-              S/ {formData.totalObligacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="p-3 bg-muted/50 rounded-md">
-            <p className="text-xs text-muted-foreground">Monto distribuido</p>
-            <p className="text-xl font-bold font-mono text-[hsl(var(--positive-green))]">
-              S/ {formData.montoDistribucion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="p-3 bg-muted/50 rounded-md">
-            <p className="text-xs text-muted-foreground">Diferencia</p>
-            <p className="text-xl font-bold font-mono">
-              S/ 0.00
-            </p>
-          </div>
-        </div>
-      </Card> */}
-
       {/* Grilla contable */}
       <Card className="p-5">
         <h3 className="section-title mb-4">Detalle de distribución contable</h3>
@@ -55,34 +47,36 @@ export function TabDistribucionContable({ formData, isFromPagoFacil = false }: P
                 <td className="text-center font-mono">1</td>
                 <td>
                   <span className="font-mono text-primary font-medium">
-                    {PARAMS_DEVENGADO_IGV.cuentaContable}
+                    {cuentaCodigo}
                   </span>
                   <span className="text-muted-foreground ml-2">
-                    – {PARAMS_DEVENGADO_IGV.cuentaContableNombre}
+                    – {cuentaNombre}
                   </span>
                 </td>
                 <td>
                   <span className="font-mono text-primary font-medium">
-                    {PARAMS_DEVENGADO_IGV.centroCostoCodigo}
+                    {centroCostoCodigo}
                   </span>
                   <span className="text-muted-foreground ml-2">
-                    – {PARAMS_DEVENGADO_IGV.centroCostoNombre}
+                    – {centroCostoNombre}
                   </span>
                 </td>
                 <td>
-                  <span className="font-mono text-primary font-medium">
-                    {PARAMS_DEVENGADO_IGV.proveedorCodigo}
-                  </span>
+                  {proveedorCodigo && (
+                    <span className="font-mono text-primary font-medium">
+                      {proveedorCodigo}
+                    </span>
+                  )}
                   <span className="text-muted-foreground ml-2">
-                    – {PARAMS_DEVENGADO_IGV.proveedorNombre}
+                    {proveedorCodigo ? '– ' : ''}{proveedorNombre}
                   </span>
                 </td>
                 <td className="text-muted-foreground">
-                  Liquidación IGV periodo
+                  {isNoDomiciliado ? 'Comisión administración de cartera' : 'Liquidación IGV periodo'}
                 </td>
                 <td className="text-right">
                   <span className="highlight-cell px-3 py-1 rounded font-mono font-semibold">
-                    S/ {formData.montoDistribucion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {monedaSymbol} {montoDisplay.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                   </span>
                 </td>
               </tr>
@@ -91,7 +85,7 @@ export function TabDistribucionContable({ formData, isFromPagoFacil = false }: P
               <tr className="bg-muted/50 font-semibold">
                 <td colSpan={5} className="text-right">Total distribuido:</td>
                 <td className="text-right font-mono">
-                  S/ {formData.montoDistribucion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {monedaSymbol} {montoDisplay.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                 </td>
               </tr>
             </tfoot>
@@ -103,7 +97,9 @@ export function TabDistribucionContable({ formData, isFromPagoFacil = false }: P
       <Card className="p-5 bg-muted/30">
         <p className="text-xs text-muted-foreground">
           <strong>Nota:</strong> La distribución contable se genera automáticamente en base a los parámetros configurados.
-          El monto refleja el valor del IGV ingresado en la pestaña de Información Monetaria.
+          {isNoDomiciliado
+            ? ' El monto refleja el total obligación (USD) de la pestaña de Información Monetaria.'
+            : ' El monto refleja el valor del IGV ingresado en la pestaña de Información Monetaria.'}
         </p>
       </Card>
     </div>
