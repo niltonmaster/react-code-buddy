@@ -178,7 +178,9 @@ export function DevengadoIGV() {
       };
     } else if (copyMode && copyDataND && tipoDevengadoLista === 'NO_DOMICILIADO') {
       // Modo COPIA ND desde Lista — precargado pero EDITABLE (igual que ND manual)
-      const igvCalc = Math.round(copyDataND.baseUsd * 0.18 * 100) / 100;
+      const igvCalc = typeof copyDataND.igvUsd === 'number' && copyDataND.igvUsd >= 0
+        ? copyDataND.igvUsd
+        : Math.round(copyDataND.baseUsd * 0.18 * 100) / 100;
       const igvSolesCalc = Math.round(igvCalc * copyDataND.tipoCambio * 100) / 100;
       const totalObl = Math.round((copyDataND.baseUsd + igvCalc) * 100) / 100;
 
