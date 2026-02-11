@@ -46,6 +46,20 @@ interface ExtendedState extends DevengadoState {
     totalIgvSoles: number;
     tipoCambio: number;
   };
+  copyData?: {
+    periodo: string;
+    proveedor: string;
+    ruc: string;
+    monto: number;
+    moneda: string;
+    observacion: string;
+    fechaEmision?: string;
+    fechaRecepcion?: string;
+    fechaVencimiento?: string;
+    fechaProgPago?: string;
+    unidadNegocio?: string;
+    tipoPago?: string;
+  };
 }
 
 export function DevengadoIGV() {
@@ -65,6 +79,7 @@ export function DevengadoIGV() {
   const tipoDevengadoLista = state?.tipoDevengadoLista;
   const copyMode = state?.copyMode ?? false;
   const copyDataND = state?.copyDataND;
+  const copyData = state?.copyData;
 
   // Determinar si es modo No Domiciliado (desde Pago Fácil ND o desde lista ND)
   const isNoDomiciliado = fromPagoFacilND || tipoDevengadoLista === 'NO_DOMICILIADO';
@@ -100,14 +115,18 @@ export function DevengadoIGV() {
     ? pagoFacilNDData.periodoTributario
     : (copyMode && copyDataND)
       ? copyDataND.periodoTributario
-      : (state?.periodoTributario ?? suggestedPeriodo);
+      : (copyMode && copyData && copyData.periodo)
+        ? (() => { const [y, m] = copyData.periodo.split('-'); return `${m}-${y}`; })()
+        : (state?.periodoTributario ?? suggestedPeriodo);
 
   // El importe para ND es el totalIgvSoles (en soles, entero)
   const importeIGV = (isNoDomiciliado && pagoFacilNDData)
     ? pagoFacilNDData.totalIgvSoles
     : (copyMode && copyDataND)
       ? copyDataND.totalIgvSoles
-      : (state?.importeIGV ?? 0);
+      : (copyMode && copyData)
+        ? (copyData.monto || 0)
+        : (state?.importeIGV ?? 0);
 
   const [currentPeriodo, setCurrentPeriodo] = useState(periodoTributario);
   const [currentMonto, setCurrentMonto] = useState(importeIGV);
@@ -218,6 +237,41 @@ export function DevengadoIGV() {
         montoDistribucion: totalObl,
         tipoCambio: copyDataND.tipoCambio,
         igvSoles: igvSolesCalc
+      };
+    } else if (copyMode && copyData && tipoDevengadoLista === 'DOMICILIADO') {
+      // Modo COPIA D desde Lista — precargado pero EDITABLE (igual que D manual)
+      const periodoForDoc = copyData.periodo
+        ? (() => { const [y, m] = copyData.periodo.split('-'); return `${m}-${y}`; })()
+        : currentPeriodo;
+      return {
+        proveedor: copyData.proveedor || '',
+        ruc: copyData.ruc || '',
+        entidad: PARAMS_DEVENGADO_IGV.entidad,
+        tipoDocumento: PARAMS_DEVENGADO_IGV.tipoDocumento,
+        pagarA: copyData.proveedor || '',
+        documentoNumero: '', // Nuevo registro, usuario lo define
+        fechaRegistro: getFechaHoy(),
+        fechaEmision: copyData.fechaEmision || fechaInputDefault,
+        fechaRecepcion: copyData.fechaRecepcion || fechaInputDefault,
+        fechaVencimiento: copyData.fechaVencimiento || fechaInputDefault,
+        fechaProgramacionPago: copyData.fechaProgPago || fechaInputDefault,
+        unidadNegocio: copyData.unidadNegocio || PARAMS_DEVENGADO_IGV.unidadNegocioNombre,
+        tipoServicio: PARAMS_DEVENGADO_IGV.tipoServicioNombre,
+        tipoPago: copyData.tipoPago || 'Débito en cuenta',
+        glosa: copyData.observacion || `LIQUIDACIÓN IGV ${mesNombre} ${currentPeriodo.split('-')[1]}`,
+        monedaDocumento: copyData.moneda === 'USD' ? 'USD' : 'Local',
+        montoAfecto: copyData.monto || 0,
+        noAfectoImpuestos: 0,
+        igv: 0,
+        otrosImpuestos: 0,
+        totalObligacion: copyData.monto || 0,
+        monedaPago: 'Local',
+        cuentaBancaria: '',
+        generarPagoAutomatico: true,
+        cuentaContable: `${PARAMS_DEVENGADO_IGV.cuentaContable} – ${PARAMS_DEVENGADO_IGV.cuentaContableNombre}`,
+        centroCosto: `${PARAMS_DEVENGADO_IGV.centroCostoCodigo} – ${PARAMS_DEVENGADO_IGV.centroCostoNombre}`,
+        persona: copyData.proveedor || '',
+        montoDistribucion: copyData.monto || 0
       };
     } else if (fromPagoFacil) {
       // Modo IGV Domiciliado normal
@@ -696,7 +750,7 @@ export function DevengadoIGV() {
           <p className="text-sm opacity-80">
             Periodo: {currentPeriodo} | RUC: 20421413216
             {(isNoDomiciliado || originalTipoDevengado === 'NO_DOMICILIADO') && !copyMode && ' | Origen: Pago Fácil IGV ND (1041)'}
-            {copyMode && isNoDomiciliado && ' | Origen: Copia desde registro existente'}
+            {copyMode && ' | Origen: Copia desde registro existente'}
           </p>
         </div>
       </div>
