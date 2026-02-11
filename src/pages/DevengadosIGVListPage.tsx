@@ -233,6 +233,7 @@ export default function DevengadosIGVListPage() {
           fromPagoFacil: false,
           fromLista: true,
           copyMode: true,
+          tipoDevengadoLista: 'DOMICILIADO',
           copyData: {
             periodo: dev.periodo,
             proveedor: dev.proveedor,
@@ -240,6 +241,12 @@ export default function DevengadosIGVListPage() {
             monto: dev.monto,
             moneda: dev.moneda,
             observacion: dev.observacion,
+            fechaEmision: dev.fechaRegistro,
+            fechaRecepcion: dev.fechaRegistro,
+            fechaVencimiento: dev.fechaRegistro,
+            fechaProgPago: dev.fechaRegistro,
+            unidadNegocio: dev.unidadNegocio,
+            tipoPago: dev.tipoPago,
           }
         }
       });
