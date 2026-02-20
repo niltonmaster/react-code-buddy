@@ -192,8 +192,8 @@ export function DevengadoIGV() {
         montoDistribucion: pagoFacilNDData.totalIgvSoles
 
 
-        , tipoCambio: pagoFacilNDData.tcSbs,      // <-- importante
-        igvSoles: pagoFacilNDData.igvUsd * pagoFacilNDData.tcSbs
+        , tipoCambio: pagoFacilNDData.tcSunatVenta,      // <-- TC Sunat Venta
+        igvSoles: pagoFacilNDData.igvUsd * pagoFacilNDData.tcSunatVenta
       };
     } else if (copyMode && copyDataND && tipoDevengadoLista === 'NO_DOMICILIADO') {
       // Modo COPIA ND desde Lista — precargado pero EDITABLE (igual que ND manual)
