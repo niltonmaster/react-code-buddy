@@ -725,7 +725,9 @@ export function PantallaPagoFacilND() {
               navigate('/devengado-igv', {
                 state: {
                   fromPagoFacilND: true,
-                  pagoFacilNDData: pagoFacilND
+                  pagoFacilNDData: pagoFacilND,
+                  portafolio,
+                  proveedoresSeleccionados,
                 }
               });
             }} className="gap-2">
