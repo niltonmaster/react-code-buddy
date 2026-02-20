@@ -1,0 +1,258 @@
+{
+    "results": [
+        {
+            "columns": [
+                {
+                    "name": "PERIOD",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COMPANYOWNER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERNO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "BUSINESSUNIT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERMODEL",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CURRENCY",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERTYPE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "LEDGER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERSOURCE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "DEPARTMENT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "RUNNUMBER",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "POSTINGNUMBER",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "DOLLARCREDITS",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "DOLLARDEBITS",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "LOCALCREDITS",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "LOCALDEBITS",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "TOTALLINES",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "TOTALERRORLINES",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "PREPAREDBY",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "PREPAREDDATE",
+                    "type": "DATE"
+                },
+                {
+                    "name": "APPROVEDBY",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "APPROVEDDATE",
+                    "type": "DATE"
+                },
+                {
+                    "name": "REPRINTNUMBER",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "VOUCHERTITLE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERCOMMENTS",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERDATE",
+                    "type": "DATE"
+                },
+                {
+                    "name": "EXCHANGERATEPERIOD",
+                    "type": "DATE"
+                },
+                {
+                    "name": "EXCHANGERATE",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "VOUCHERCLASIFICATION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "INTERNALNUMBER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "STATUS",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "LASTUSER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "LASTDATE",
+                    "type": "DATE"
+                },
+                {
+                    "name": "FILEATTACHED",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REPLICATIONUNIT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TRANSFERFLAG",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TRANSFERCOUNT",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "VALUEDATE",
+                    "type": "DATE"
+                },
+                {
+                    "name": "FASE",
+                    "type": "CHAR"
+                },
+                {
+                    "name": "CICLO",
+                    "type": "CHAR"
+                },
+                {
+                    "name": "SIAF_EXPEDIENTE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "SIAF_NOTA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHER1",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHER2",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHER3",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "IN_TIPO_CAMB_ESPE",
+                    "type": "CHAR"
+                }
+            ],
+            "items": [
+                {
+                    "period": "202510",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000047",
+                    "businessunit": "F100",
+                    "currency": "EX",
+                    "vouchertype": "N",
+                    "ledger": "02",
+                    "vouchersource": "AUTOCPPR",
+                    "department": "UT",
+                    "runnumber": 0,
+                    "postingnumber": 0,
+                    "dollarcredits": -245189.32,
+                    "dollardebits": 245189.32,
+                    "localcredits": -844922.4,
+                    "localdebits": 844922.4,
+                    "totallines": 3,
+                    "totalerrorlines": 0,
+                    "preparedby": 17257,
+                    "prepareddate": "28\/10\/25",
+                    "approvedby": 17257,
+                    "approveddate": "21\/10\/25",
+                    "reprintnumber": 0,
+                    "vouchertitle": "COMISION FLAR PORT. ALLSPRING Y WELLINGTON ENE-MAR 2025 M. N°000673-2025-OGR-ONP",
+                    "voucherdate": "28\/10\/25",
+                    "exchangerate": 3.446,
+                    "status": "PR",
+                    "lastuser": "OAD.CO_032",
+                    "lastdate": "28\/10\/25",
+                    "replicationunit": "LIMA",
+                    "in_tipo_camb_espe": "N"
+                },
+                {
+                    "period": "202512",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000112",
+                    "businessunit": "F100",
+                    "currency": "EX",
+                    "vouchertype": "N",
+                    "ledger": "02",
+                    "vouchersource": "AUTOCPPR",
+                    "department": "UT",
+                    "runnumber": 0,
+                    "postingnumber": 0,
+                    "dollarcredits": -143054.31,
+                    "dollardebits": 143054.31,
+                    "localcredits": -480948.59,
+                    "localdebits": 480948.59,
+                    "totallines": 3,
+                    "totalerrorlines": 0,
+                    "preparedby": 17257,
+                    "prepareddate": "13\/01\/26",
+                    "approvedby": 17257,
+                    "approveddate": "13\/01\/26",
+                    "reprintnumber": 0,
+                    "vouchertitle": "LIQUIDAC. SERV. ADM. PORTAF. ALLSPRING ABR-MAY 2025 M. N°000888-2025-OGR-ONP",
+                    "voucherdate": "31\/12\/25",
+                    "exchangerate": 3.362,
+                    "status": "PR",
+                    "lastuser": "OAD.CO_032",
+                    "lastdate": "13\/01\/26",
+                    "replicationunit": "LIMA",
+                    "in_tipo_camb_espe": "N"
+                }
+            ]
+        }
+    ]
+}

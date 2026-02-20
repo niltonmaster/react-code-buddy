@@ -1,0 +1,18 @@
+[
+  {
+    "id": "FLAR_CONJUNTO_202510_A2F1000047",
+    "portafolio": "FLAR",
+    "proveedores": ["WELLINGTON", "ALLSPRING"],
+    "voucher": { "period": "202510", "voucherNo": "A2F1000047" },
+    "trxNumbers": [694737],
+    "labels": { "casoLabel": "FLAR conjunto (Wellington + Allspring)" }
+  },
+  {
+    "id": "FLAR_ALLSPRING_202512_A2F1000112",
+    "portafolio": "FLAR",
+    "proveedores": ["ALLSPRING"],
+    "voucher": { "period": "202512", "voucherNo": "A2F1000112" },
+    "trxNumbers": [712974],
+    "labels": { "casoLabel": "FLAR solo Allspring" }
+  }
+]

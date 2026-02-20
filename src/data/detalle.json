@@ -1,0 +1,316 @@
+{
+    "results": [
+        {
+            "columns": [
+                {
+                    "name": "PERIOD",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COMPANYOWNER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERNO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERLINE",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "ACCOUNT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "LOCALAMOUNT",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "DOLLARAMOUNT",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "THIRDAMOUNT",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "VENDOR",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "AFE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "DESTINATIONCOMPANYOWNER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "DESTINATIONACCOUNT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COMMITMENT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "INVOICE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CHECKNUMBER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLEDATE",
+                    "type": "DATE"
+                },
+                {
+                    "name": "REFERENCEFIELD",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "SUBLEDGERCODE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE01",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE02",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE03",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE04",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE05",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE06",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE07",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE08",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE09",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VARIABLECODE10",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "POSTEDAMOUNTLOCAL",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "POSTEDAMOUNTDOLLAR",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "COSTCENTER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COSTCENTERDESTINATION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "BUDGETCATEGORY",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CASHFLOWCODE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "ORIGIN",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "DESCRIPTION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "SUCURSAL",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "SPLITDISTRIBUTIONFLAG",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "STATUS",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COMPANY",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CURRENCYDOCUMENT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "OWNER",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "PRIME",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REFERENCIAFISCAL01",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REFERENCIAFISCAL02",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REFERENCIAFISCAL03",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TRANSFERFLAG",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TRANSFERCOUNT",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "FLUJOEFECTIVOCODIGO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "NU_FACT_ENTI_PRIV",
+                    "type": "VARCHAR2"
+                }
+            ],
+            "items": [
+                {
+                    "period": "202510",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000047",
+                    "voucherline": 1,
+                    "account": "1041201",
+                    "localamount": -844922.4,
+                    "dollaramount": -245189.32,
+                    "thirdamount": 0,
+                    "vendor": 4386,
+                    "invoice": "TB-694737",
+                    "variabledate": "07\/10\/25",
+                    "variablecode10": "B021014",
+                    "postedamountlocal": -844922.4,
+                    "postedamountdollar": -245189.32,
+                    "sucursal": "01",
+                    "status": "V"
+                },
+                {
+                    "period": "202510",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000047",
+                    "voucherline": 2,
+                    "account": "4699105",
+                    "localamount": 844905.17,
+                    "dollaramount": 245184.32,
+                    "thirdamount": 0,
+                    "vendor": 12000,
+                    "invoice": "TB-694737",
+                    "variabledate": "07\/10\/25",
+                    "postedamountlocal": 844905.17,
+                    "postedamountdollar": 245184.32,
+                    "sucursal": "01",
+                    "status": "V"
+                },
+                {
+                    "period": "202510",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000047",
+                    "voucherline": 3,
+                    "account": "639121",
+                    "localamount": 17.23,
+                    "dollaramount": 5,
+                    "thirdamount": 0,
+                    "vendor": 4386,
+                    "invoice": "TB-694737",
+                    "variabledate": "07\/10\/25",
+                    "variablecode10": "B021014",
+                    "postedamountlocal": 17.23,
+                    "postedamountdollar": 5,
+                    "sucursal": "01",
+                    "status": "V"
+                },
+                {
+                    "period": "202512",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000112",
+                    "voucherline": 1,
+                    "account": "1041201",
+                    "localamount": -480948.59,
+                    "dollaramount": -143054.31,
+                    "thirdamount": 0,
+                    "vendor": 4386,
+                    "invoice": "TB-712974",
+                    "variabledate": "23\/12\/25",
+                    "variablecode10": "B021014",
+                    "postedamountlocal": -480948.59,
+                    "postedamountdollar": -143054.31,
+                    "sucursal": "01",
+                    "status": "V"
+                },
+                {
+                    "period": "202512",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000112",
+                    "voucherline": 2,
+                    "account": "4699105",
+                    "localamount": 480931.78,
+                    "dollaramount": 143049.31,
+                    "thirdamount": 0,
+                    "vendor": 12000,
+                    "invoice": "TB-712974",
+                    "variabledate": "23\/12\/25",
+                    "postedamountlocal": 480931.78,
+                    "postedamountdollar": 143049.31,
+                    "sucursal": "01",
+                    "status": "V"
+                },
+                {
+                    "period": "202512",
+                    "companyowner": "02000000",
+                    "voucherno": "A2F1000112",
+                    "voucherline": 3,
+                    "account": "639121",
+                    "localamount": 16.81,
+                    "dollaramount": 5,
+                    "thirdamount": 0,
+                    "vendor": 4386,
+                    "invoice": "TB-712974",
+                    "variabledate": "23\/12\/25",
+                    "variablecode10": "B021014",
+                    "postedamountlocal": 16.81,
+                    "postedamountdollar": 5,
+                    "sucursal": "01",
+                    "status": "V"
+                }
+            ]
+        }
+    ]
+}

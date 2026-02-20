@@ -1,12 +1,27 @@
-import { useState } from 'react';
-import { ArrowLeft, FileText, Printer, Download, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, FileText, Printer, Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import html2pdf from 'html2pdf.js';
+import {
+  getProveedoresFLAR,
+  PROVEEDORES_MILA,
+  getPeriodosFLAR,
+  findCase,
+  buildAutofillFromCase,
+  getDefaultReadonlyFields,
+  type AutofillResult,
+} from '@/lib/flarDataService';
+
+// ─── Tipos ───────────────────────────────────────────────
 
 export interface PagoFacilND {
   periodoTributario: string;
@@ -29,68 +44,197 @@ export interface PagoFacilND {
   fechaEmisionLima: string;
 }
 
-const initialData: PagoFacilND = {
-  periodoTributario: "09-2025",
-  codigoTributo: "1041",
-  tributo: "IGV NO DOMICILIADO",
-  importePagarSoles: 63060,
-  facturaNro: "GE/0002499",
-  proveedor: "BBVA Asset Management S.A.",
-  fechaPagoServicio: "2025-09-16",
-  tcSunatVenta: 3.499,
-  expedienteNro: "OGR.RF20250000153",
-  igvUsd: 18022.28,
-  baseUsd: 100123.78,
-  totalFacturaSoles: 349331.87,
-  igvSoles: 63059.96,
-  redondeo: 0.04,
-  totalIgvSoles: 63060.00,
-  tcSbs: 3.489,
-  periodoComision: "Abril - Junio 2025",
-  fechaEmisionLima: "2025-09-24"
+const emptyFormData: PagoFacilND = {
+  periodoTributario: '',
+  codigoTributo: '1041',
+  tributo: 'IGV NO DOMICILIADO',
+  importePagarSoles: 0,
+  facturaNro: '',
+  proveedor: '',
+  fechaPagoServicio: '',
+  tcSunatVenta: 0,
+  expedienteNro: '',
+  igvUsd: 0,
+  baseUsd: 0,
+  totalFacturaSoles: 0,
+  igvSoles: 0,
+  redondeo: 0,
+  totalIgvSoles: 0,
+  tcSbs: 0,
+  periodoComision: '',
+  fechaEmisionLima: new Date().toISOString().split('T')[0],
 };
+
+// ─── Componente principal ────────────────────────────────
 
 export function PantallaPagoFacilND() {
   const navigate = useNavigate();
-  const [pagoFacilND, setPagoFacilND] = useState<PagoFacilND>(initialData);
+
+  // Selección cascada
+  const [portafolio, setPortafolio] = useState<'FLAR' | 'MILA' | ''>('');
+  const [proveedoresSeleccionados, setProveedoresSeleccionados] = useState<string[]>([]);
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
+
+  // Datos del formulario
+  const [pagoFacilND, setPagoFacilND] = useState<PagoFacilND>(emptyFormData);
+  const [readonlyFields, setReadonlyFields] = useState<Record<string, boolean>>(getDefaultReadonlyFields());
+  const [autofilledCase, setAutofilledCase] = useState<string | null>(null);
+  const [noMatchWarning, setNoMatchWarning] = useState(false);
+
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Listas dinámicas
+  const proveedoresDisponibles = useMemo(() => {
+    if (portafolio === 'FLAR') return getProveedoresFLAR();
+    if (portafolio === 'MILA') return PROVEEDORES_MILA;
+    return [];
+  }, [portafolio]);
+
+  const periodosDisponibles = useMemo(() => {
+    if (portafolio === 'FLAR') return getPeriodosFLAR();
+    return [];
+  }, [portafolio]);
+
+  // ─── Eventos de selección ────────────────────────────
+
+  const handlePortafolioChange = (value: 'FLAR' | 'MILA') => {
+    setPortafolio(value);
+    setProveedoresSeleccionados([]);
+    setPeriodoSeleccionado('');
+    setPagoFacilND(emptyFormData);
+    setReadonlyFields(getDefaultReadonlyFields());
+    setAutofilledCase(null);
+    setNoMatchWarning(false);
+  };
+
+  const handleProveedorToggle = (prov: string) => {
+    setProveedoresSeleccionados(prev => {
+      const next = prev.includes(prov) ? prev.filter(p => p !== prov) : [...prev, prov];
+      return next;
+    });
+    // No precargar aún, falta periodo
+    setAutofilledCase(null);
+    setNoMatchWarning(false);
+  };
+
+  const handlePeriodoChange = (value: string) => {
+    setPeriodoSeleccionado(value);
+  };
+
+  // ─── Efecto de precarga FLAR ─────────────────────────
+
+  useEffect(() => {
+    if (portafolio !== 'FLAR') return;
+    if (proveedoresSeleccionados.length === 0 || !periodoSeleccionado) return;
+
+    const caseEntry = findCase('FLAR', proveedoresSeleccionados, periodoSeleccionado);
+
+    if (!caseEntry) {
+      setNoMatchWarning(true);
+      setAutofilledCase(null);
+      // Dejar editable (modo manual dentro de FLAR)
+      setPagoFacilND({
+        ...emptyFormData,
+        proveedor: proveedoresSeleccionados.join(' + '),
+      });
+      setReadonlyFields(getDefaultReadonlyFields());
+      toast.warning('No se encontró caso en índice (solo prototipo). Modo manual activado.');
+      return;
+    }
+
+    const result = buildAutofillFromCase(caseEntry, proveedoresSeleccionados);
+    if (!result) {
+      toast.error('Error al procesar datos del caso');
+      return;
+    }
+
+    setNoMatchWarning(false);
+    setAutofilledCase(result.casoLabel);
+    setPagoFacilND(prev => ({ ...prev, ...result.fields }));
+    setReadonlyFields(result.readonlyFields);
+    toast.success(`Datos cargados: ${result.casoLabel}`);
+  }, [portafolio, proveedoresSeleccionados, periodoSeleccionado]);
+
+  // ─── Update field con recálculos ─────────────────────
 
   const updateField = <K extends keyof PagoFacilND>(field: K, value: PagoFacilND[K]) => {
     setPagoFacilND(prev => {
       const updated = { ...prev, [field]: value };
-      
-      // Auto-calculate IGV USD when baseUsd changes
+
       if (field === 'baseUsd') {
         updated.igvUsd = Number((Number(value) * 0.18).toFixed(2));
       }
-      
-      // Auto-calculate IGV Soles when igvUsd or tcSunatVenta changes
+
       if (field === 'igvUsd' || field === 'tcSunatVenta' || field === 'baseUsd') {
         updated.igvSoles = Number((updated.igvUsd * updated.tcSunatVenta).toFixed(2));
         updated.totalIgvSoles = Math.round(updated.igvSoles);
         updated.redondeo = Number((updated.totalIgvSoles - updated.igvSoles).toFixed(2));
         updated.importePagarSoles = updated.totalIgvSoles;
+        updated.totalFacturaSoles = Number((updated.baseUsd * updated.tcSunatVenta).toFixed(2));
       }
-      
+
       return updated;
     });
   };
 
-  const formatNumber = (num: number, decimals: number = 2) => {
-    return num.toLocaleString('es-PE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  };
+  // ─── Formato ─────────────────────────────────────────
+
+  const formatNumber = (num: number, decimals: number = 2) =>
+    num.toLocaleString('es-PE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
   const formatFecha = (fecha: string) => {
+    if (!fecha) return '—';
     const [year, month, day] = fecha.split('-');
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
     return `${parseInt(day)} de ${meses[parseInt(month) - 1]} de ${year}`;
   };
 
   const getMesAño = () => {
+    if (!pagoFacilND.periodoTributario) return '';
     const [mes, año] = pagoFacilND.periodoTributario.split('-');
     const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SETIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
     return `${meses[parseInt(mes) - 1]} DE ${año}`;
   };
+
+  // ─── Validación ──────────────────────────────────────
+
+  const camposRequeridos = {
+    portafolio: !!portafolio,
+    proveedores: proveedoresSeleccionados.length > 0,
+    periodo: portafolio === 'MILA' || !!periodoSeleccionado,
+    fechaPagoServicio: !!pagoFacilND.fechaPagoServicio,
+    periodoTributario: !!pagoFacilND.periodoTributario,
+    tcSunat: pagoFacilND.tcSunatVenta > 0,
+    baseUsd: pagoFacilND.baseUsd > 0,
+    facturaNro: !!pagoFacilND.facturaNro,
+    expediente: !!pagoFacilND.expedienteNro,
+  };
+
+  const canPreview = Object.values(camposRequeridos).every(Boolean);
+
+  const getMissingFields = () => {
+    const labels: Record<string, string> = {
+      portafolio: 'Portafolio',
+      proveedores: 'Proveedor(es)',
+      periodo: 'Periodo',
+      fechaPagoServicio: 'Fecha Pago Servicio',
+      periodoTributario: 'Periodo Tributario',
+      tcSunat: 'TC SUNAT',
+      baseUsd: 'Total Factura US$',
+      facturaNro: 'Factura Nro',
+      expediente: 'Expediente Nro',
+    };
+    return Object.entries(camposRequeridos)
+      .filter(([, ok]) => !ok)
+      .map(([key]) => labels[key]);
+  };
+
+  // ─── Helpers para readonly UI ────────────────────────
+
+  const isReadonly = (field: string) => readonlyFields[field] === true;
+  const fieldBg = (field: string) => isReadonly(field) ? 'bg-muted' : '';
+
+  // ─── Export PDF ──────────────────────────────────────
 
   const handleExportPDF = () => {
     const element = document.getElementById('print-area');
@@ -102,23 +246,15 @@ export function PantallaPagoFacilND() {
       margin: 0,
       filename,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: 794 // A4 width in pixels at 96dpi
-      },
+      html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
       jsPDF: { unit: 'mm' as const, format: 'a4', orientation: 'portrait' as const },
-      // IMPORTANT: do NOT use `avoid: '.pdf-page'` here, it can cause an extra blank page
-      pagebreak: { mode: ['css'] as const }
+      pagebreak: { mode: ['css'] as const },
     };
 
     const worker: any = html2pdf().set(opt).from(element).toPdf();
-
     worker
       .get('pdf')
       .then((pdf: any) => {
-        // Safety net: if an empty page slips in between, remove it.
         if (pdf?.internal?.getNumberOfPages && pdf.internal.getNumberOfPages() === 3) {
           pdf.deletePage(2);
         }
@@ -126,13 +262,89 @@ export function PantallaPagoFacilND() {
       .then(() => worker.save());
   };
 
+  // ─── Render ──────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header - Título */}
         <h1 className="text-2xl font-bold">Pago Fácil – IGV No Domiciliado (1041)</h1>
 
-        {/* Sección 1: Datos Tributarios */}
+        {/* ═══ Sección 0: Selección Portafolio → Proveedor → Periodo ═══ */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Selección de Caso</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Portafolio */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="font-semibold">Portafolio *</Label>
+                <Select value={portafolio} onValueChange={(v) => handlePortafolioChange(v as 'FLAR' | 'MILA')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar portafolio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FLAR">FLAR (Auto)</SelectItem>
+                    <SelectItem value="MILA">MILA (Manual)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Periodo (solo FLAR) */}
+              {portafolio === 'FLAR' && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Periodo (YYYYMM) *</Label>
+                  <Select value={periodoSeleccionado} onValueChange={handlePeriodoChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar periodo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periodosDisponibles.map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Proveedores */}
+            {portafolio && (
+              <div className="space-y-2">
+                <Label className="font-semibold">Proveedor(es) * {portafolio === 'FLAR' ? '(puede seleccionar varios)' : ''}</Label>
+                <div className="flex flex-wrap gap-3">
+                  {proveedoresDisponibles.map(prov => (
+                    <label key={prov} className="flex items-center gap-2 border border-border rounded-md px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors">
+                      <Checkbox
+                        checked={proveedoresSeleccionados.includes(prov)}
+                        onCheckedChange={() => handleProveedorToggle(prov)}
+                      />
+                      <span className="text-sm font-medium">{prov}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Status badges */}
+            <div className="flex gap-2 flex-wrap">
+              {portafolio && <Badge variant="outline">{portafolio}</Badge>}
+              {proveedoresSeleccionados.length > 0 && (
+                <Badge variant="secondary">{proveedoresSeleccionados.join(' + ')}</Badge>
+              )}
+              {periodoSeleccionado && <Badge variant="secondary">{periodoSeleccionado}</Badge>}
+              {autofilledCase && <Badge className="bg-green-100 text-green-800 border-green-300">✓ {autofilledCase}</Badge>}
+              {noMatchWarning && (
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Sin match — modo manual
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ═══ Sección 1: Datos Tributarios ═══ */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Datos Tributarios</CardTitle>
@@ -141,41 +353,36 @@ export function PantallaPagoFacilND() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Periodo Tributario</Label>
-                <Input 
-                  value={pagoFacilND.periodoTributario} 
+                <Input
+                  value={pagoFacilND.periodoTributario}
                   onChange={(e) => updateField('periodoTributario', e.target.value)}
+                  readOnly={isReadonly('periodoTributario')}
+                  className={fieldBg('periodoTributario')}
                   placeholder="MM-YYYY"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Código Tributo</Label>
-                <Input 
-                  value={pagoFacilND.codigoTributo} 
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input value={pagoFacilND.codigoTributo} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Tributo</Label>
-                <Input 
-                  value={pagoFacilND.tributo} 
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input value={pagoFacilND.tributo} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Importe a Pagar S/</Label>
-                <Input 
+                <Input
                   type="number"
-                  value={pagoFacilND.importePagarSoles} 
-                  onChange={(e) => updateField('importePagarSoles', Number(e.target.value))}
+                  value={pagoFacilND.importePagarSoles}
+                  readOnly
+                  className="bg-muted font-bold"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Sección 2: Datos del Documento */}
+        {/* ═══ Sección 2: Datos del Documento ═══ */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Datos del Documento</CardTitle>
@@ -183,39 +390,47 @@ export function PantallaPagoFacilND() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Factura Nro</Label>
-                <Input 
-                  value={pagoFacilND.facturaNro} 
+                <Label>Factura Nro *</Label>
+                <Input
+                  value={pagoFacilND.facturaNro}
                   onChange={(e) => updateField('facturaNro', e.target.value)}
+                  readOnly={isReadonly('facturaNro')}
+                  className={fieldBg('facturaNro')}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Proveedor</Label>
-                <Input 
-                  value={pagoFacilND.proveedor} 
+                <Input
+                  value={pagoFacilND.proveedor}
                   onChange={(e) => updateField('proveedor', e.target.value)}
+                  readOnly={isReadonly('proveedor')}
+                  className={fieldBg('proveedor')}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Fecha Pago del Servicio</Label>
-                <Input 
+                <Label>Fecha Pago del Servicio *</Label>
+                <Input
                   type="date"
-                  value={pagoFacilND.fechaPagoServicio} 
+                  value={pagoFacilND.fechaPagoServicio}
                   onChange={(e) => updateField('fechaPagoServicio', e.target.value)}
+                  readOnly={isReadonly('fechaPagoServicio')}
+                  className={fieldBg('fechaPagoServicio')}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Expediente Nro</Label>
-                <Input 
-                  value={pagoFacilND.expedienteNro} 
+                <Label>Expediente Nro *</Label>
+                <Input
+                  value={pagoFacilND.expedienteNro}
                   onChange={(e) => updateField('expedienteNro', e.target.value)}
+                  readOnly={isReadonly('expedienteNro')}
+                  className={fieldBg('expedienteNro')}
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Sección 3: Conversión / Cálculo - Orden nuevo */}
+        {/* ═══ Sección 3: Conversión / Cálculo ═══ */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Conversión / Cálculo</CardTitle>
@@ -223,118 +438,112 @@ export function PantallaPagoFacilND() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Total Factura US$</Label>
-                <Input 
+                <Label>Total Factura US$ *</Label>
+                <Input
                   type="number"
                   step="0.01"
-                  value={pagoFacilND.baseUsd} 
+                  value={pagoFacilND.baseUsd}
                   onChange={(e) => updateField('baseUsd', Number(e.target.value))}
+                  readOnly={isReadonly('baseUsd')}
+                  className={fieldBg('baseUsd')}
                 />
               </div>
               <div className="space-y-2">
                 <Label>IGV No Domiciliado US$</Label>
-                <Input 
-                  type="number"
-                  step="0.01"
-                  value={pagoFacilND.igvUsd} 
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input type="number" value={pagoFacilND.igvUsd} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
-                <Label>TC Sunat Venta</Label>
-                <Input 
+                <Label>TC Sunat Venta *</Label>
+                <Input
                   type="number"
                   step="0.001"
-                  value={pagoFacilND.tcSunatVenta} 
+                  value={pagoFacilND.tcSunatVenta}
                   onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
+                  readOnly={isReadonly('tcSunatVenta')}
+                  className={fieldBg('tcSunatVenta')}
                 />
               </div>
               <div className="space-y-2">
                 <Label>IGV S/ (sin redondeo)</Label>
-                <Input 
-                  type="number"
-                  value={pagoFacilND.igvSoles} 
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input type="number" value={pagoFacilND.igvSoles} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Redondeo</Label>
-                <Input 
-                  type="number"
-                  value={pagoFacilND.redondeo} 
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input type="number" value={pagoFacilND.redondeo} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Total IGV S/ (entero)</Label>
-                <Input 
-                  type="number"
-                  value={pagoFacilND.totalIgvSoles} 
-                  readOnly
-                  className="bg-muted font-bold"
-                />
+                <Input type="number" value={pagoFacilND.totalIgvSoles} readOnly className="bg-muted font-bold" />
               </div>
               <div className="space-y-2">
                 <Label>TC SBS</Label>
-                <Input 
+                <Input
                   type="number"
                   step="0.001"
-                  value={pagoFacilND.tcSbs} 
+                  value={pagoFacilND.tcSbs}
                   onChange={(e) => updateField('tcSbs', Number(e.target.value))}
+                  readOnly={isReadonly('tcSbs')}
+                  className={fieldBg('tcSbs')}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Periodo Comisión</Label>
-                <Input 
-                  value={pagoFacilND.periodoComision} 
+                <Input
+                  value={pagoFacilND.periodoComision}
                   onChange={(e) => updateField('periodoComision', e.target.value)}
+                  readOnly={isReadonly('periodoComision')}
+                  className={fieldBg('periodoComision')}
                 />
               </div>
               <div className="space-y-2 col-span-2">
                 <Label>Fecha Emisión Lima</Label>
-                <Input 
+                <Input
                   type="date"
-                  value={pagoFacilND.fechaEmisionLima} 
+                  value={pagoFacilND.fechaEmisionLima}
                   onChange={(e) => updateField('fechaEmisionLima', e.target.value)}
-                  className="max-w-xs"
+                  readOnly={isReadonly('fechaEmisionLima')}
+                  className={`max-w-xs ${fieldBg('fechaEmisionLima')}`}
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Footer - Barra de botones estilo institucional */}
+        {/* ═══ Footer ═══ */}
         <div className="flex justify-center gap-3 py-4 border-t border-border bg-muted/30 rounded-lg">
           <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Volver a selección
           </Button>
-          <Button variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Recalcular Totales
-          </Button>
-          <Button onClick={() => setModalOpen(true)} className="gap-2">
+          <Button
+            onClick={() => {
+              if (!canPreview) {
+                const missing = getMissingFields();
+                toast.error(`Campos faltantes: ${missing.join(', ')}`);
+                return;
+              }
+              setModalOpen(true);
+            }}
+            className="gap-2"
+            disabled={!portafolio}
+          >
             <FileText className="h-4 w-4" />
             Previsualizar Pago Fácil 1041
           </Button>
         </div>
       </div>
 
-      {/* Modal Preview */}
+      {/* ═══ Modal Preview ═══ */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-[900px] max-h-[90vh] overflow-y-auto flex flex-col">
           <DialogHeader>
             <DialogTitle>Vista Previa - Pago Fácil 1041</DialogTitle>
           </DialogHeader>
-          
+
           <div id="print-area" style={{ backgroundColor: 'white' }}>
             {/* HOJA 1: Pago Fácil */}
-            <div id="page-1" className="pdf-page" style={{ width: '210mm', height: '297mm', padding: '8mm', boxSizing: 'border-box', backgroundColor: 'white', pageBreakAfter: 'always' }}>
+            <div className="pdf-page" style={{ width: '210mm', height: '297mm', padding: '8mm', boxSizing: 'border-box', backgroundColor: 'white', pageBreakAfter: 'always' }}>
               <div className="border-2 border-black p-6 h-full" style={{ boxSizing: 'border-box' }}>
-                {/* Header */}
                 <div className="border border-black p-4 mb-6">
                   <p className="font-bold text-lg">FONDO CONSOLIDADO DE RESERVAS PREVISIONALES</p>
                   <p>RUC: 20421413216</p>
@@ -342,7 +551,6 @@ export function PantallaPagoFacilND() {
 
                 <h2 className="text-center font-bold text-xl mb-8">SISTEMA DE PAGO FÁCIL</h2>
 
-                {/* Datos principales */}
                 <div className="flex justify-between mb-6">
                   <div className="border border-black p-2 text-center w-1/3">
                     <p className="text-sm border-b border-black pb-1 mb-2">PERIODO TRIBUTARIO</p>
@@ -359,7 +567,6 @@ export function PantallaPagoFacilND() {
                   </div>
                 </div>
 
-                {/* Total */}
                 <div className="flex justify-end mb-8">
                   <div className="flex items-center">
                     <span className="border border-black px-3 py-1 font-bold bg-gray-100">TOTAL S/.</span>
@@ -367,7 +574,6 @@ export function PantallaPagoFacilND() {
                   </div>
                 </div>
 
-                {/* Datos documento */}
                 <div className="mb-6 space-y-1">
                   <p><span className="font-bold">Factura Nro</span> : {pagoFacilND.facturaNro}</p>
                   <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
@@ -384,7 +590,6 @@ export function PantallaPagoFacilND() {
                   <p><span className="font-bold">Expediente Nro</span> : {pagoFacilND.expedienteNro}</p>
                 </div>
 
-                {/* Firma */}
                 <div className="border border-black p-6 mt-auto" style={{ minHeight: '120px' }}>
                   <p className="text-right mb-16">Lima, {formatFecha(pagoFacilND.fechaEmisionLima)}</p>
                   <div className="flex justify-between mt-8">
@@ -402,15 +607,13 @@ export function PantallaPagoFacilND() {
             </div>
 
             {/* HOJA 2: Liquidación */}
-            <div id="page-2" className="pdf-page" style={{ width: '210mm', height: '297mm', padding: '8mm', boxSizing: 'border-box', backgroundColor: 'white' }}>
+            <div className="pdf-page" style={{ width: '210mm', height: '297mm', padding: '8mm', boxSizing: 'border-box', backgroundColor: 'white' }}>
               <div className="border-2 border-black p-6 h-full" style={{ boxSizing: 'border-box' }}>
-                {/* Header */}
                 <div className="mb-6">
                   <p className="font-bold text-lg">FONDO CONSOLIDADO DE RESERVAS PREVISIONALES</p>
                   <p>RUC: 20421413216</p>
                 </div>
 
-                {/* Título */}
                 <div className="border border-black p-4 mb-6 text-center">
                   <p className="font-bold">LIQUIDACIÓN DEL IMPUESTO GENERAL A LAS VENTAS</p>
                   <p className="font-bold mt-2">NO DOMICILIADOS</p>
@@ -418,9 +621,8 @@ export function PantallaPagoFacilND() {
                   <p>(En Soles)</p>
                 </div>
 
-                <p className="mb-6">Por concepto de administración del Portafolio MILA llevado a cabo por {pagoFacilND.proveedor}.</p>
+                <p className="mb-6">Por concepto de administración del Portafolio {portafolio || 'FLAR'} llevado a cabo por {pagoFacilND.proveedor}.</p>
 
-                {/* Datos */}
                 <div className="space-y-1 mb-6">
                   <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
                   <p><span className="font-bold">Factura N°</span> : {pagoFacilND.facturaNro}</p>
@@ -428,9 +630,8 @@ export function PantallaPagoFacilND() {
                   <p><span className="font-bold">Fecha pago del Servicio</span> : {formatFecha(pagoFacilND.fechaPagoServicio)}</p>
                 </div>
 
-                {/* Tabla periodo */}
                 <div className="flex justify-between items-center mb-2">
-                  <div className="border border-black px-4 py-2 bg-gray-100 font-bold">{pagoFacilND.periodoComision}</div>
+                  <div className="border border-black px-4 py-2 bg-gray-100 font-bold">{pagoFacilND.periodoComision || '—'}</div>
                   <div className="text-right">
                     <span className="font-bold mr-4">US$</span>
                     <span className="font-bold">{formatNumber(pagoFacilND.baseUsd, 2)}</span>
@@ -445,7 +646,6 @@ export function PantallaPagoFacilND() {
                   </div>
                 </div>
 
-                {/* TC */}
                 <div className="space-y-2 mb-6">
                   <p><span className="font-bold">T.C.P.P.Venta</span></p>
                   <p><span className="font-bold">Publicado - SUNAT</span> : {pagoFacilND.tcSunatVenta.toFixed(3)}</p>
@@ -453,13 +653,11 @@ export function PantallaPagoFacilND() {
                   <p><span className="font-bold">Vigente - SBS</span> : {pagoFacilND.tcSbs.toFixed(3)}</p>
                 </div>
 
-                {/* Totales */}
                 <div className="space-y-2 mb-6">
                   <p><span className="font-bold">Total Factura US$</span> : {formatNumber(pagoFacilND.baseUsd, 2)}</p>
                   <p><span className="font-bold">Total Factura S/</span> : {formatNumber(pagoFacilND.totalFacturaSoles, 2)}</p>
                 </div>
 
-                {/* IGV Final */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <p className="font-bold">Impuesto General a las Ventas No Domiciliados</p>
@@ -488,8 +686,8 @@ export function PantallaPagoFacilND() {
               </div>
             </div>
           </div>
-          
-          {/* Footer del Modal - Barra de botones */}
+
+          {/* Footer del Modal */}
           <div className="flex justify-center gap-3 py-4 border-t border-border bg-muted/30 mt-4">
             <Button variant="outline" onClick={() => setModalOpen(false)} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
