@@ -35,6 +35,8 @@ interface ExtendedState extends DevengadoState {
   editId?: number;
   fromPagoFacilND?: boolean;
   pagoFacilNDData?: DevengadoNDState['pagoFacilNDData'];
+  portafolio?: string;
+  proveedoresSeleccionados?: string[];
   tipoDevengadoLista?: 'DOMICILIADO' | 'NO_DOMICILIADO';
   copyMode?: boolean;
   copyDataND?: {
@@ -76,6 +78,8 @@ export function DevengadoIGV() {
   const fromPagoFacilND = state?.fromPagoFacilND ?? false;
   const fromLista = state?.fromLista ?? false;
   const pagoFacilNDData = state?.pagoFacilNDData;
+  const portafolioND = state?.portafolio ?? '';
+  const proveedoresND = state?.proveedoresSeleccionados ?? [];
   const tipoDevengadoLista = state?.tipoDevengadoLista;
   const copyMode = state?.copyMode ?? false;
   const copyDataND = state?.copyDataND;
@@ -812,7 +816,7 @@ export function DevengadoIGV() {
           </TabsContent>
 
           <TabsContent value="distribucion">
-            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} />
+            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} portafolio={portafolioND} proveedores={proveedoresND} />
           </TabsContent>
         </Tabs>
 

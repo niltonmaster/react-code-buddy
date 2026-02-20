@@ -73,6 +73,45 @@ export interface PagoFacilNDPayload {
 export interface DevengadoNDState {
   fromPagoFacilND: boolean;
   pagoFacilNDData: PagoFacilNDPayload;
+  portafolio?: string;
+  proveedoresSeleccionados?: string[];
+}
+
+// ─── Mapeo de cuentas contables para Distribución Contable ND ───
+export interface CuentaContableND {
+  cuenta: string;
+  descripcion: string;
+}
+
+// Cuentas FIJAS para todos los casos ND
+export const CUENTA_IGV_SERVICIO_ND: CuentaContableND = {
+  cuenta: '4011201',
+  descripcion: 'IGV - Servicios prestados por No Domiciliados',
+};
+export const CUENTA_IGV_NO_DOMICILIADO: CuentaContableND = {
+  cuenta: '6411101',
+  descripcion: 'IGV no domiciliados',
+};
+
+// Cuentas VARIABLES por portafolio + proveedor
+export const CUENTAS_COMISION_ND: Record<string, CuentaContableND> = {
+  // FLAR
+  'FLAR_CONJUNTO': { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' },
+  'FLAR_ALLSPRING': { cuenta: '4699107', descripcion: 'Comisiones portafolio analytic Investors' },
+  'FLAR_WELLINGTON': { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' }, // placeholder — confirmar
+  // MILA
+  'MILA_BBVA': { cuenta: '0000000', descripcion: 'Comisiones portafolio BBVA' },           // pendiente
+  'MILA_BCP': { cuenta: '0000000', descripcion: 'Comisiones portafolio BCP' },             // pendiente
+  'MILA_COMPASS': { cuenta: '0000000', descripcion: 'Comisiones portafolio Compass' },     // pendiente
+};
+
+/** Obtiene la clave de lookup para CUENTAS_COMISION_ND */
+export function getCuentaComisionKey(portafolio: string, proveedores: string[]): string {
+  if (!portafolio) return '';
+  const proveedoresUpper = proveedores.map(p => p.toUpperCase());
+  // Si hay más de un proveedor → CONJUNTO
+  if (proveedoresUpper.length > 1) return `${portafolio.toUpperCase()}_CONJUNTO`;
+  return `${portafolio.toUpperCase()}_${proveedoresUpper[0] || ''}`;
 }
 
 export interface DevengadoFormData {
