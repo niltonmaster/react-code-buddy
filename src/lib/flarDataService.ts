@@ -164,6 +164,31 @@ export interface AutofillResult {
   casoLabel: string;
 }
 
+// ---------- Extraer periodo comisión desde vouchertitle ----------
+
+export function extractPeriodoComision(vouchertitle: string): string {
+  if (!vouchertitle) return '';
+  // Buscar patrones como "ENE-MAR 2025", "ABR-MAY 2025", etc.
+  const mesesMap: Record<string, string> = {
+    'ENE': 'Enero', 'FEB': 'Febrero', 'MAR': 'Marzo', 'ABR': 'Abril',
+    'MAY': 'Mayo', 'JUN': 'Junio', 'JUL': 'Julio', 'AGO': 'Agosto',
+    'SET': 'Setiembre', 'SEP': 'Setiembre', 'OCT': 'Octubre', 'NOV': 'Noviembre', 'DIC': 'Diciembre',
+  };
+  const match = vouchertitle.match(/([A-Z]{3})-([A-Z]{3})\s+(\d{4})/i);
+  if (match) {
+    const desde = mesesMap[match[1].toUpperCase()] || match[1];
+    const hasta = mesesMap[match[2].toUpperCase()] || match[2];
+    return `${desde}-${hasta} ${match[3]}`;
+  }
+  // Patrón mes único: "ABR 2025"
+  const matchSingle = vouchertitle.match(/([A-Z]{3})\s+(\d{4})/i);
+  if (matchSingle) {
+    const mes = mesesMap[matchSingle[1].toUpperCase()] || matchSingle[1];
+    return `${mes} ${matchSingle[2]}`;
+  }
+  return '';
+}
+
 export function buildAutofillFromCase(
   caseEntry: CaseEntry,
   proveedoresSeleccionados: string[]
@@ -173,7 +198,10 @@ export function buildAutofillFromCase(
 
   if (!trxCFL) return null;
 
-  const proveedorTexto = proveedoresSeleccionados.join(' + ');
+  // Si es caso conjunto (múltiples proveedores), usar nombre fijo FLAR
+  const proveedorTexto = proveedoresSeleccionados.length > 1
+    ? 'FONDO LATINOAMERICANO DE RESERVAS - FLAR'
+    : proveedoresSeleccionados.join(' + ');
   const fechaPagoISO = parseFechaOracle(trxCFL.fechatransaccion);
   const periodoTributario = derivarPeriodoTributario(fechaPagoISO) || 
     (() => { const p = caseEntry.voucher.period; return `${p.slice(4)}-${p.slice(0,4)}`; })();
@@ -203,7 +231,7 @@ export function buildAutofillFromCase(
     redondeo,
     totalIgvSoles,
     tcSbs,
-    periodoComision: '',      // No viene de JSON, editable
+    periodoComision: header ? extractPeriodoComision(header.vouchertitle) : '',
     fechaEmisionLima: new Date().toISOString().split('T')[0],
   };
 

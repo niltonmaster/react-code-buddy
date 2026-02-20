@@ -30,6 +30,7 @@ export interface PagoFacilND {
   importePagarSoles: number;
   facturaNro: string;
   proveedor: string;
+  domicilio: string;
   fechaPagoServicio: string;
   tcSunatVenta: number;
   expedienteNro: string;
@@ -51,6 +52,7 @@ const emptyFormData: PagoFacilND = {
   importePagarSoles: 0,
   facturaNro: '',
   proveedor: '',
+  domicilio: '',
   fechaPagoServicio: '',
   tcSunatVenta: 0,
   expedienteNro: '',
@@ -182,6 +184,11 @@ export function PantallaPagoFacilND() {
   const formatNumber = (num: number, decimals: number = 2) =>
     num.toLocaleString('es-PE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
+  const formatRedondeo = (num: number) => {
+    const abs = Math.abs(num);
+    const formatted = abs.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return num < 0 ? `(${formatted})` : formatted;
+  };
   const formatFecha = (fecha: string) => {
     if (!fecha) return '—';
     const [year, month, day] = fecha.split('-');
@@ -426,11 +433,17 @@ export function PantallaPagoFacilND() {
                   className={fieldBg('expedienteNro')}
                 />
               </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Domicilio</Label>
+                <Input
+                  value={pagoFacilND.domicilio}
+                  onChange={(e) => updateField('domicilio', e.target.value)}
+                  placeholder="Ej: Avenida Calle 84 A No 12 -18 Piso 7, Bogotá D.C., Colombia"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* ═══ Sección 3: Conversión / Cálculo ═══ */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Conversión / Cálculo</CardTitle>
@@ -577,6 +590,9 @@ export function PantallaPagoFacilND() {
                 <div className="mb-6 space-y-1">
                   <p><span className="font-bold">Factura Nro</span> : {pagoFacilND.facturaNro}</p>
                   <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
+                  {pagoFacilND.domicilio && (
+                    <p><span className="font-bold">Domicilio</span> : {pagoFacilND.domicilio}</p>
+                  )}
                   <p><span className="font-bold">Fecha Pago del Servicio</span> : {formatFecha(pagoFacilND.fechaPagoServicio)}</p>
                 </div>
 
@@ -625,6 +641,9 @@ export function PantallaPagoFacilND() {
 
                 <div className="space-y-1 mb-6">
                   <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
+                  {pagoFacilND.domicilio && (
+                    <p><span className="font-bold">Domicilio</span> : {pagoFacilND.domicilio}</p>
+                  )}
                   <p><span className="font-bold">Factura N°</span> : {pagoFacilND.facturaNro}</p>
                   <p><span className="font-bold">Expediente</span> : {pagoFacilND.expedienteNro}</p>
                   <p><span className="font-bold">Fecha pago del Servicio</span> : {formatFecha(pagoFacilND.fechaPagoServicio)}</p>
@@ -671,7 +690,7 @@ export function PantallaPagoFacilND() {
                     <p className="font-bold">Redondeo</p>
                     <div className="flex items-center">
                       <span className="px-2 py-1">S/</span>
-                      <span className="px-4 py-1">{formatNumber(pagoFacilND.redondeo, 2)}</span>
+                      <span className="px-4 py-1">{formatRedondeo(pagoFacilND.redondeo)}</span>
                     </div>
                   </div>
 
