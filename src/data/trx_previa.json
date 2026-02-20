@@ -1,0 +1,394 @@
+{
+    "results": [
+        {
+            "columns": [
+                {
+                    "name": "UNIDADREPLICACION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "NUMEROTRANSACCION",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "SECUENCIA",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "COMPANIASOCIO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TIPOTRANSACCION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CUENTABANCARIA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "FECHATRANSACCION",
+                    "type": "DATE"
+                },
+                {
+                    "name": "NEGOCIACION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "PERIODOCONTABLE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERNO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "VOUCHERPERSONADEFAULT",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "MONEDA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "MONTOLOCAL",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "MONTODOLARES",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "MONTOGASTO",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "TRANSACCIONGASTO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TIPOOPERACION",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TIPODECAMBIO",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "COMENTARIO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "PROVEEDOR",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "NUMEROPAGO",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "EMPLEADORESPONSABLE",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "CODIGOREFERENCIAINTERNO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CODIGOREFERENCIABANCO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "PREPARADOPOR",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "FECHAPREPARACION",
+                    "type": "DATE"
+                },
+                {
+                    "name": "PAGOSNUMEROPROCESO",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "PAGOSSECUENCIA",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "PROYECTO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "FLUJODECAJA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COBRANZAPENDIENTEFLAG",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "COBRANZAMONTOPENDIENTE",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "ESTADO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "ULTIMOUSUARIO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "ULTIMAFECHAMODIF",
+                    "type": "DATE"
+                },
+                {
+                    "name": "CENTROCOSTO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "SUCURSAL",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CAMPOREFERENCIA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CENTROCOSTODESTINO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "PERIODOFLUJOEFECTIVO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REFERENCIAFISCAL01",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REFERENCIAFISCAL02",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "REFERENCIAFISCAL03",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "SIAF_EXPEDIENTE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "TIPODOCUMENTO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "UNIDADNEGOCIO",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "GENERARPAGOFLAG",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "DEPOSITO",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "GENERARFLAG",
+                    "type": "CHAR"
+                },
+                {
+                    "name": "GENERARINVERSIONFLAG",
+                    "type": "CHAR"
+                },
+                {
+                    "name": "CARTAFIANZA",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "CONCILIACIONFLAG",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CONCILIACIONFECHA",
+                    "type": "DATE"
+                },
+                {
+                    "name": "ESTADOENTREGA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "FECHAENTREGA",
+                    "type": "DATE"
+                },
+                {
+                    "name": "VOUCHERENTREGA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "DEPOSITOCUENTA",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "IN_DEVOCUT",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "FE_DEVOCUT",
+                    "type": "DATE"
+                },
+                {
+                    "name": "IN_ASOC_INVE",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "CA_DOCU_REFE",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "IN_PLTA_CUT6",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "NU_PLTA_CUT6",
+                    "type": "VARCHAR2"
+                },
+                {
+                    "name": "FE_DEPO_PLTA_CUT6",
+                    "type": "DATE"
+                },
+                {
+                    "name": "NU_TRAN_REFE_CUT6",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "NU_CORR_REFE_CUT6",
+                    "type": "NUMBER"
+                },
+                {
+                    "name": "IN_TIPO_CAMB_ESPE",
+                    "type": "VARCHAR2"
+                }
+            ],
+            "items": [
+                {
+                    "unidadreplicacion": "LIMA",
+                    "numerotransaccion": 694737,
+                    "secuencia": 1,
+                    "companiasocio": "02000000",
+                    "tipotransaccion": "CFL",
+                    "cuentabancaria": "B021014",
+                    "fechatransaccion": "07\/10\/25",
+                    "periodocontable": "202510",
+                    "voucherno": "A2F1000047",
+                    "moneda": "EX",
+                    "montolocal": -849563.67,
+                    "montodolares": -245184.32,
+                    "montogasto": 0,
+                    "tipodecambio": 3.465,
+                    "comentario": "COMISION FLAR PORT. ALLSPRING Y WELLINGTON ENE-MAR 2025 M. N°000673-2025-OGR-ONP",
+                    "proveedor": 12000,
+                    "preparadopor": 17664,
+                    "fechapreparacion": "07\/10\/25",
+                    "estado": "CO",
+                    "ultimousuario": "EBEDREGAL",
+                    "ultimafechamodif": "07\/10\/25",
+                    "sucursal": "01",
+                    "unidadnegocio": "F100",
+                    "generarpagoflag": "N",
+                    "generarflag": "S",
+                    "in_devocut": "N",
+                    "in_asoc_inve": "N"
+                },
+                {
+                    "unidadreplicacion": "LIMA",
+                    "numerotransaccion": 694737,
+                    "secuencia": 2,
+                    "companiasocio": "02000000",
+                    "tipotransaccion": "CBD",
+                    "cuentabancaria": "B021014",
+                    "fechatransaccion": "07\/10\/25",
+                    "periodocontable": "202510",
+                    "voucherno": "A2F1000047",
+                    "moneda": "EX",
+                    "montolocal": -17.33,
+                    "montodolares": -5,
+                    "montogasto": 0,
+                    "tipodecambio": 3.465,
+                    "comentario": "COMISION FLAR PORT. ALLSPRING Y WELLINGTON ENE-MAR 2025 M. N°000673-2025-OGR-ONP",
+                    "preparadopor": 17664,
+                    "fechapreparacion": "07\/10\/25",
+                    "estado": "CO",
+                    "ultimousuario": "EBEDREGAL",
+                    "ultimafechamodif": "07\/10\/25",
+                    "sucursal": "01",
+                    "unidadnegocio": "F100",
+                    "generarpagoflag": "N",
+                    "generarflag": "S",
+                    "in_devocut": "N",
+                    "in_asoc_inve": "N"
+                },
+                {
+                    "unidadreplicacion": "LIMA",
+                    "numerotransaccion": 712974,
+                    "secuencia": 1,
+                    "companiasocio": "02000000",
+                    "tipotransaccion": "CFL",
+                    "cuentabancaria": "B021014",
+                    "fechatransaccion": "23\/12\/25",
+                    "periodocontable": "202512",
+                    "voucherno": "A2F1000112",
+                    "moneda": "EX",
+                    "montolocal": -482362.27,
+                    "montodolares": -143049.31,
+                    "montogasto": 0,
+                    "tipodecambio": 3.372,
+                    "comentario": "LIQUIDAC. SERV. ADM. PORTAF. ALLSPRING ABR-MAY 2025 M. N°000888-2025-OGR-ONP",
+                    "proveedor": 12000,
+                    "preparadopor": 36570,
+                    "fechapreparacion": "23\/12\/25",
+                    "estado": "CO",
+                    "ultimousuario": "SGAVILANO",
+                    "ultimafechamodif": "23\/12\/25",
+                    "sucursal": "01",
+                    "unidadnegocio": "F100",
+                    "generarpagoflag": "N",
+                    "generarflag": "S",
+                    "in_devocut": "N",
+                    "in_asoc_inve": "N",
+                    "in_tipo_camb_espe": "N"
+                },
+                {
+                    "unidadreplicacion": "LIMA",
+                    "numerotransaccion": 712974,
+                    "secuencia": 2,
+                    "companiasocio": "02000000",
+                    "tipotransaccion": "CBD",
+                    "cuentabancaria": "B021014",
+                    "fechatransaccion": "23\/12\/25",
+                    "periodocontable": "202512",
+                    "voucherno": "A2F1000112",
+                    "moneda": "EX",
+                    "montolocal": -16.86,
+                    "montodolares": -5,
+                    "montogasto": 0,
+                    "tipodecambio": 3.372,
+                    "comentario": "LIQUIDAC. SERV. ADM. PORTAF. ALLSPRING ABR-MAY 2025 M. N°000888-2025-OGR-ONP",
+                    "preparadopor": 36570,
+                    "fechapreparacion": "23\/12\/25",
+                    "estado": "CO",
+                    "ultimousuario": "SGAVILANO",
+                    "ultimafechamodif": "23\/12\/25",
+                    "sucursal": "01",
+                    "unidadnegocio": "F100",
+                    "generarpagoflag": "N",
+                    "generarflag": "S",
+                    "in_devocut": "N",
+                    "in_asoc_inve": "N",
+                    "in_tipo_camb_espe": "N"
+                }
+            ]
+        }
+    ]
+}
