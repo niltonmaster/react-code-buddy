@@ -189,6 +189,16 @@ export function PantallaPagoFacilND() {
     const formatted = abs.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return num < 0 ? `(${formatted})` : formatted;
   };
+
+  // Máscara de miles: 143049.31 → "143,049.31"
+  const formatMiles = (num: number, decimals: number = 2) =>
+    num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+  const parseMiles = (val: string): number => {
+    const cleaned = val.replace(/,/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  };
   const formatFecha = (fecha: string) => {
     if (!fecha) return '—';
     const [year, month, day] = fecha.split('-');
@@ -379,8 +389,8 @@ export function PantallaPagoFacilND() {
               <div className="space-y-2">
                 <Label>Importe a Pagar S/</Label>
                 <Input
-                  type="number"
-                  value={pagoFacilND.importePagarSoles}
+                  type="text"
+                  value={formatMiles(pagoFacilND.importePagarSoles)}
                   readOnly
                   className="bg-muted font-bold"
                 />
@@ -453,17 +463,16 @@ export function PantallaPagoFacilND() {
               <div className="space-y-2">
                 <Label>Total Factura US$ *</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={pagoFacilND.baseUsd}
-                  onChange={(e) => updateField('baseUsd', Number(e.target.value))}
+                  type="text"
+                  value={formatMiles(pagoFacilND.baseUsd)}
+                  onChange={(e) => updateField('baseUsd', parseMiles(e.target.value))}
                   readOnly={isReadonly('baseUsd')}
                   className={fieldBg('baseUsd')}
                 />
               </div>
               <div className="space-y-2">
                 <Label>IGV No Domiciliado US$</Label>
-                <Input type="number" value={pagoFacilND.igvUsd} readOnly className="bg-muted" />
+                <Input type="text" value={formatMiles(pagoFacilND.igvUsd)} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>TC Sunat Venta *</Label>
@@ -478,15 +487,15 @@ export function PantallaPagoFacilND() {
               </div>
               <div className="space-y-2">
                 <Label>IGV S/ (sin redondeo)</Label>
-                <Input type="number" value={pagoFacilND.igvSoles} readOnly className="bg-muted" />
+                <Input type="text" value={formatMiles(pagoFacilND.igvSoles)} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Redondeo</Label>
-                <Input type="number" value={pagoFacilND.redondeo} readOnly className="bg-muted" />
+                <Input type="text" value={formatRedondeo(pagoFacilND.redondeo)} readOnly className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Total IGV S/ (entero)</Label>
-                <Input type="number" value={pagoFacilND.totalIgvSoles} readOnly className="bg-muted font-bold" />
+                <Input type="text" value={formatMiles(pagoFacilND.totalIgvSoles, 0)} readOnly className="bg-muted font-bold" />
               </div>
               <div className="space-y-2">
                 <Label>TC SBS</Label>
