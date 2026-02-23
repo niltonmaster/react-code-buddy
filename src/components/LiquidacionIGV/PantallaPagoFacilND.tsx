@@ -208,9 +208,25 @@ export function PantallaPagoFacilND() {
 
   const getMesAño = () => {
     if (!pagoFacilND.periodoTributario) return '';
-    const [mes, año] = pagoFacilND.periodoTributario.split('-');
     const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SETIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-    return `${meses[parseInt(mes) - 1]} DE ${año}`;
+    // Soportar formatos MM-YYYY, MMYYYY, YYYYMM
+    const val = pagoFacilND.periodoTributario.trim();
+    if (val.includes('-')) {
+      const [mes, año] = val.split('-');
+      const mesIdx = parseInt(mes) - 1;
+      return meses[mesIdx] ? `${meses[mesIdx]} DE ${año}` : val;
+    }
+    if (val.length === 6) {
+      // Intentar MMYYYY o YYYYMM
+      let mesNum = parseInt(val.substring(0, 2));
+      let año = val.substring(2);
+      if (mesNum < 1 || mesNum > 12) {
+        año = val.substring(0, 4);
+        mesNum = parseInt(val.substring(4));
+      }
+      return meses[mesNum - 1] ? `${meses[mesNum - 1]} DE ${año}` : val;
+    }
+    return val;
   };
 
   // ─── Validación ──────────────────────────────────────
