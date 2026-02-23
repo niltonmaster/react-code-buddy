@@ -249,7 +249,7 @@ export function PantallaPagoFacilND() {
   // ─── Helpers para readonly UI ────────────────────────
 
   const isReadonly = (field: string) => readonlyFields[field] === true;
-  const fieldBg = (field: string) => isReadonly(field) ? 'bg-muted' : '';
+  const fieldBg = (field: string) => isReadonly(field) ? 'bg-muted' : 'bg-white';
 
   // ─── Export PDF ──────────────────────────────────────
 
