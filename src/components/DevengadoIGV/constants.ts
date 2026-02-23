@@ -83,6 +83,12 @@ export interface CuentaContableND {
   descripcion: string;
 }
 
+// Soporte para cuentas distintas en línea 1 (Haber) y línea 3 (Debe)
+export interface CuentasComisionPar {
+  lineaHaber: CuentaContableND; // línea 1
+  lineaDebe: CuentaContableND;  // línea 3
+}
+
 // Cuentas FIJAS para todos los casos ND
 export const CUENTA_IGV_SERVICIO_ND: CuentaContableND = {
   cuenta: '4011201',
