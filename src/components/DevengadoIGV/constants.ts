@@ -99,16 +99,34 @@ export const CUENTA_IGV_NO_DOMICILIADO: CuentaContableND = {
   descripcion: 'IGV no domiciliados',
 };
 
-// Cuentas VARIABLES por portafolio + proveedor
-export const CUENTAS_COMISION_ND: Record<string, CuentaContableND> = {
-  // FLAR
-  'FLAR_CONJUNTO': { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' },
-  'FLAR_ALLSPRING': { cuenta: '4699107', descripcion: 'Comisiones portafolio analytic Investors' },
-  'FLAR_WELLINGTON': { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' }, // placeholder — confirmar
-  // MILA
-  'MILA_BBVA': { cuenta: '0000000', descripcion: 'Comisiones portafolio BBVA' },           // pendiente
-  'MILA_BCP': { cuenta: '0000000', descripcion: 'Comisiones portafolio BCP' },             // pendiente
-  'MILA_COMPASS': { cuenta: '0000000', descripcion: 'Comisiones portafolio Compass' },     // pendiente
+// Cuentas VARIABLES por portafolio + proveedor (línea 1 = Haber, línea 3 = Debe)
+export const CUENTAS_COMISION_ND: Record<string, CuentasComisionPar> = {
+  // FLAR — líneas 1 y 3 comparten misma cuenta
+  'FLAR_CONJUNTO': {
+    lineaHaber: { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' },
+    lineaDebe:  { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' },
+  },
+  'FLAR_ALLSPRING': {
+    lineaHaber: { cuenta: '4699107', descripcion: 'Comisiones portafolio analytic Investors' },
+    lineaDebe:  { cuenta: '4699107', descripcion: 'Comisiones portafolio analytic Investors' },
+  },
+  'FLAR_WELLINGTON': {
+    lineaHaber: { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' },
+    lineaDebe:  { cuenta: '4699103', descripcion: 'Comisiones portafolio Fondo Latinoamericano' },
+  },
+  // MILA — líneas 1 y 3 pueden tener cuentas distintas
+  'MILA_BBVA': {
+    lineaHaber: { cuenta: '7771117', descripcion: 'Ganancia por ajuste a valor razonable' },
+    lineaDebe:  { cuenta: '4699131', descripcion: 'Fees BBVA ME Exterior' },
+  },
+  'MILA_BCP': {
+    lineaHaber: { cuenta: '0000000', descripcion: 'Comisiones portafolio BCP' },
+    lineaDebe:  { cuenta: '0000000', descripcion: 'Comisiones portafolio BCP' },
+  },
+  'MILA_COMPASS': {
+    lineaHaber: { cuenta: '0000000', descripcion: 'Comisiones portafolio Compass' },
+    lineaDebe:  { cuenta: '0000000', descripcion: 'Comisiones portafolio Compass' },
+  },
 };
 
 /** Obtiene la clave de lookup para CUENTAS_COMISION_ND */
