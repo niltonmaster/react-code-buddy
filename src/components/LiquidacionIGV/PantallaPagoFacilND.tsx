@@ -6,14 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import html2pdf from 'html2pdf.js';
 import {
-  getProveedoresFLAR,
-  PROVEEDORES_MILA,
   getPeriodosFLAR,
   findCase,
   buildAutofillFromCase,
@@ -74,8 +71,19 @@ export function PantallaPagoFacilND() {
 
   // Selección cascada
   const [portafolio, setPortafolio] = useState<'FLAR' | 'MILA' | ''>('');
-  const [proveedoresSeleccionados, setProveedoresSeleccionados] = useState<string[]>([]);
+  const [tipoFLAR, setTipoFLAR] = useState<string>('');
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
+
+  // Derivar proveedoresSeleccionados del tipoFLAR
+  const proveedoresSeleccionados = useMemo(() => {
+    if (portafolio !== 'FLAR') return [];
+    switch (tipoFLAR) {
+      case 'conjunto': return ['ALLSPRING', 'WELLINGTON'];
+      case 'allspring': return ['ALLSPRING'];
+      case 'wellington': return ['WELLINGTON'];
+      default: return [];
+    }
+  }, [portafolio, tipoFLAR]);
 
   // Datos del formulario
   const [pagoFacilND, setPagoFacilND] = useState<PagoFacilND>(emptyFormData);
@@ -86,22 +94,18 @@ export function PantallaPagoFacilND() {
   const [modalOpen, setModalOpen] = useState(false);
 
   // Listas dinámicas
-  const proveedoresDisponibles = useMemo(() => {
-    if (portafolio === 'FLAR') return getProveedoresFLAR();
-    if (portafolio === 'MILA') return PROVEEDORES_MILA;
-    return [];
-  }, [portafolio]);
-
   const periodosDisponibles = useMemo(() => {
-    if (portafolio === 'FLAR') return getPeriodosFLAR();
+    if (portafolio === 'FLAR' && proveedoresSeleccionados.length > 0) {
+      return getPeriodosFLAR(proveedoresSeleccionados);
+    }
     return [];
-  }, [portafolio]);
+  }, [portafolio, proveedoresSeleccionados]);
 
   // ─── Eventos de selección ────────────────────────────
 
   const handlePortafolioChange = (value: 'FLAR' | 'MILA') => {
     setPortafolio(value);
-    setProveedoresSeleccionados([]);
+    setTipoFLAR('');
     setPeriodoSeleccionado('');
     setPagoFacilND(emptyFormData);
     setReadonlyFields(getDefaultReadonlyFields());
@@ -109,12 +113,11 @@ export function PantallaPagoFacilND() {
     setNoMatchWarning(false);
   };
 
-  const handleProveedorToggle = (prov: string) => {
-    setProveedoresSeleccionados(prev => {
-      const next = prev.includes(prov) ? prev.filter(p => p !== prov) : [...prev, prov];
-      return next;
-    });
-    // No precargar aún, falta periodo
+  const handleTipoFLARChange = (value: string) => {
+    setTipoFLAR(value);
+    setPeriodoSeleccionado('');
+    setPagoFacilND(emptyFormData);
+    setReadonlyFields(getDefaultReadonlyFields());
     setAutofilledCase(null);
     setNoMatchWarning(false);
   };
@@ -233,8 +236,8 @@ export function PantallaPagoFacilND() {
 
   const camposRequeridos = {
     portafolio: !!portafolio,
-    proveedores: proveedoresSeleccionados.length > 0,
-    periodo: portafolio === 'MILA' || !!periodoSeleccionado,
+    proveedores: portafolio === 'MILA' || proveedoresSeleccionados.length > 0,
+    periodo: portafolio === 'MILA' || !tipoFLAR || !!periodoSeleccionado || periodosDisponibles.length === 0,
     fechaPagoServicio: !!pagoFacilND.fechaPagoServicio,
     periodoTributario: !!pagoFacilND.periodoTributario,
     tcSunat: pagoFacilND.tcSunatVenta > 0,
@@ -323,13 +326,30 @@ export function PantallaPagoFacilND() {
                 </Select>
               </div>
 
-              {/* Periodo (solo FLAR) */}
+              {/* Tipo FLAR (solo FLAR) */}
               {portafolio === 'FLAR' && (
                 <div className="space-y-2">
-                  <Label className="font-semibold">Periodo (YYYYMM) *</Label>
+                  <Label className="font-semibold">Tipo FLAR *</Label>
+                  <Select value={tipoFLAR} onValueChange={handleTipoFLARChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="conjunto">Conjunto (Allspring + Wellington)</SelectItem>
+                      <SelectItem value="allspring">Solo Allspring</SelectItem>
+                      <SelectItem value="wellington">Solo Wellington</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Periodo (solo FLAR con tipo seleccionado) */}
+              {portafolio === 'FLAR' && tipoFLAR && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Periodo (YYYYMM)</Label>
                   <Select value={periodoSeleccionado} onValueChange={handlePeriodoChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar periodo" />
+                      <SelectValue placeholder={periodosDisponibles.length === 0 ? 'Sin periodos disponibles' : 'Seleccionar periodo'} />
                     </SelectTrigger>
                     <SelectContent>
                       {periodosDisponibles.map(p => (
@@ -340,24 +360,6 @@ export function PantallaPagoFacilND() {
                 </div>
               )}
             </div>
-
-            {/* Proveedores */}
-            {portafolio && (
-              <div className="space-y-2">
-                <Label className="font-semibold">Proveedor(es) * {portafolio === 'FLAR' ? '(puede seleccionar varios)' : ''}</Label>
-                <div className="flex flex-wrap gap-3">
-                  {proveedoresDisponibles.map(prov => (
-                    <label key={prov} className="flex items-center gap-2 border border-border rounded-md px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors">
-                      <Checkbox
-                        checked={proveedoresSeleccionados.includes(prov)}
-                        onCheckedChange={() => handleProveedorToggle(prov)}
-                      />
-                      <span className="text-sm font-medium">{prov}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Status badges */}
             <div className="flex gap-2 flex-wrap">

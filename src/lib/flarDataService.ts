@@ -82,9 +82,20 @@ export const PROVEEDORES_MILA = ['BBVA', 'COMPASS', 'BCP'];
 
 // ---------- Periodos disponibles ----------
 
-export function getPeriodosFLAR(): string[] {
+export function getPeriodosFLAR(proveedoresFiltro?: string[]): string[] {
   const set = new Set<string>();
-  cases.forEach(c => set.add(c.voucher.period));
+  cases.forEach(c => {
+    if (proveedoresFiltro && proveedoresFiltro.length > 0) {
+      // Match exacto del set de proveedores
+      const caseSet = new Set(c.proveedores.map(p => p.toUpperCase()));
+      const filtroSet = new Set(proveedoresFiltro.map(p => p.toUpperCase()));
+      if (caseSet.size !== filtroSet.size) return;
+      for (const p of filtroSet) {
+        if (!caseSet.has(p)) return;
+      }
+    }
+    set.add(c.voucher.period);
+  });
   return Array.from(set).sort();
 }
 
