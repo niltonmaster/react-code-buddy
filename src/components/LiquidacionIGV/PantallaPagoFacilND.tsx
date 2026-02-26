@@ -645,18 +645,16 @@ export function PantallaPagoFacilND() {
                   />
                 </div>
               )}
-              {/* Proveedor: solo si NO es MILA (MILA lo maneja arriba) */}
-              {!isMILA && (
-                <div className="space-y-2">
-                  <Label>Proveedor</Label>
-                  <Input
-                    value={pagoFacilND.proveedor}
-                    onChange={(e) => updateField('proveedor', e.target.value)}
-                    readOnly={isReadonly('proveedor')}
-                    className={fieldBg('proveedor')}
-                  />
-                </div>
-              )}
+              {/* Proveedor: FLAR editable/readonly, MILA autocompletado readonly */}
+              <div className="space-y-2">
+                <Label>Proveedor</Label>
+                <Input
+                  value={isMILA ? (isCustodia ? 'BBH' : proveedorMILA || '') : pagoFacilND.proveedor}
+                  onChange={!isMILA ? (e) => updateField('proveedor', e.target.value) : undefined}
+                  readOnly={isMILA || isReadonly('proveedor')}
+                  className={isMILA ? 'bg-muted' : fieldBg('proveedor')}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Fecha Pago del Servicio *</Label>
                 <Input
@@ -694,54 +692,9 @@ export function PantallaPagoFacilND() {
             <CardTitle className="text-lg">Conversión / Cálculo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Campos comunes de TC */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>TC Sunat Venta *</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={pagoFacilND.tcSunatVenta || ''}
-                  onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
-                  readOnly={isReadonly('tcSunatVenta')}
-                  className={fieldBg('tcSunatVenta')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>TC SBS</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={pagoFacilND.tcSbs || ''}
-                  onChange={(e) => updateField('tcSbs', Number(e.target.value))}
-                  readOnly={isReadonly('tcSbs')}
-                  className={fieldBg('tcSbs')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Periodo Comisión</Label>
-                <Input
-                  value={pagoFacilND.periodoComision}
-                  onChange={(e) => updateField('periodoComision', e.target.value)}
-                  readOnly={isReadonly('periodoComision')}
-                  className={fieldBg('periodoComision')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Fecha Emisión Lima</Label>
-                <Input
-                  type="date"
-                  value={pagoFacilND.fechaEmisionLima}
-                  onChange={(e) => updateField('fechaEmisionLima', e.target.value)}
-                  readOnly={isReadonly('fechaEmisionLima')}
-                  className={fieldBg('fechaEmisionLima')}
-                />
-              </div>
-            </div>
-
-            {/* ── Bloque factura individual (FLAR o Administrativa) ── */}
+            {/* ── Orden NO custodia (original): Total Factura, IGV USD, TC Sunat, IGV S/, Redondeo, Total IGV S/, TC SBS, Periodo Comisión, Fecha Emisión ── */}
             {!isCustodia && (
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Total Factura US$ *</Label>
                   <Input
@@ -757,6 +710,17 @@ export function PantallaPagoFacilND() {
                   <Input type="text" value={formatMiles(pagoFacilND.igvUsd)} readOnly className="bg-muted" />
                 </div>
                 <div className="space-y-2">
+                  <Label>TC Sunat Venta *</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={pagoFacilND.tcSunatVenta || ''}
+                    onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
+                    readOnly={isReadonly('tcSunatVenta')}
+                    className={fieldBg('tcSunatVenta')}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>IGV S/ (sin redondeo)</Label>
                   <Input type="text" value={formatMiles(pagoFacilND.igvSoles)} readOnly className="bg-muted" />
                 </div>
@@ -768,67 +732,137 @@ export function PantallaPagoFacilND() {
                   <Label>Total IGV S/ (entero)</Label>
                   <Input type="text" value={formatMiles(pagoFacilND.totalIgvSoles, 0)} readOnly className="bg-muted font-bold" />
                 </div>
+                <div className="space-y-2">
+                  <Label>TC SBS</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={pagoFacilND.tcSbs || ''}
+                    onChange={(e) => updateField('tcSbs', Number(e.target.value))}
+                    readOnly={isReadonly('tcSbs')}
+                    className={fieldBg('tcSbs')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Periodo Comisión</Label>
+                  <Input
+                    value={pagoFacilND.periodoComision}
+                    onChange={(e) => updateField('periodoComision', e.target.value)}
+                    readOnly={isReadonly('periodoComision')}
+                    className={fieldBg('periodoComision')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fecha Emisión Lima</Label>
+                  <Input
+                    type="date"
+                    value={pagoFacilND.fechaEmisionLima}
+                    onChange={(e) => updateField('fechaEmisionLima', e.target.value)}
+                    readOnly={isReadonly('fechaEmisionLima')}
+                    className={fieldBg('fechaEmisionLima')}
+                  />
+                </div>
               </div>
             )}
 
-            {/* ── Grilla Custodia (3 filas fijas) ── */}
+            {/* ── Custodia: TCs primero, luego grilla ── */}
             {isCustodia && (
-              <div className="pt-4 border-t border-border space-y-4">
-                <Label className="font-semibold text-base">Facturas por Proveedor (Custodia)</Label>
-                <div className="overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[120px]">Proveedor</TableHead>
-                        <TableHead className="w-[160px]">Nro Factura</TableHead>
-                        <TableHead className="w-[140px] text-right">Base USD</TableHead>
-                        <TableHead className="w-[120px] text-right">IGV USD (18%)</TableHead>
-                        <TableHead className="w-[140px] text-right">IGV S/ sin red.</TableHead>
-                        <TableHead className="w-[120px] text-right">Total IGV S/</TableHead>
-                        <TableHead className="w-[100px] text-right">Redondeo</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filasCustodia.map((fila, idx) => (
-                        <TableRow key={fila.proveedor}>
-                          <TableCell className="font-medium">{fila.proveedor}</TableCell>
-                          <TableCell>
-                            <Input
-                              value={fila.facturaNro}
-                              onChange={(e) => updateFilaCustodia(idx, 'facturaNro', e.target.value)}
-                              className="bg-white h-8"
-                              placeholder="Nro"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="text"
-                              value={fila.baseUsd ? formatMiles(fila.baseUsd) : ''}
-                              onChange={(e) => updateFilaCustodia(idx, 'baseUsd', parseMiles(e.target.value))}
-                              className="bg-white h-8 text-right"
-                              placeholder="0.00"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right font-mono">{formatMiles(fila.igvUsd)}</TableCell>
-                          <TableCell className="text-right font-mono">{formatMiles(fila.igvSoles)}</TableCell>
-                          <TableCell className="text-right font-mono font-bold">{formatMiles(fila.totalIgvSoles, 0)}</TableCell>
-                          <TableCell className="text-right font-mono">{formatRedondeo(fila.redondeo)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow className="font-bold">
-                        <TableCell colSpan={2}>TOTALES</TableCell>
-                        <TableCell className="text-right">{formatMiles(totalesCustodia.totalBaseUsd)}</TableCell>
-                        <TableCell className="text-right">{formatMiles(totalesCustodia.totalIgvUsd)}</TableCell>
-                        <TableCell className="text-right">—</TableCell>
-                        <TableCell className="text-right">{formatMiles(totalesCustodia.totalIgvSolesEntero, 0)}</TableCell>
-                        <TableCell className="text-right">{formatRedondeo(totalesCustodia.totalRedondeo)}</TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>TC Sunat Venta *</Label>
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={pagoFacilND.tcSunatVenta || ''}
+                      onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>TC SBS</Label>
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={pagoFacilND.tcSbs || ''}
+                      onChange={(e) => updateField('tcSbs', Number(e.target.value))}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Periodo Comisión</Label>
+                    <Input
+                      value={pagoFacilND.periodoComision}
+                      onChange={(e) => updateField('periodoComision', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fecha Emisión Lima</Label>
+                    <Input
+                      type="date"
+                      value={pagoFacilND.fechaEmisionLima}
+                      onChange={(e) => updateField('fechaEmisionLima', e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div className="pt-4 border-t border-border space-y-4">
+                  <Label className="font-semibold text-base">Facturas por Proveedor (Custodia)</Label>
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[120px]">Proveedor</TableHead>
+                          <TableHead className="w-[160px]">Nro Factura</TableHead>
+                          <TableHead className="w-[140px] text-right">Base USD</TableHead>
+                          <TableHead className="w-[120px] text-right">IGV USD (18%)</TableHead>
+                          <TableHead className="w-[140px] text-right">IGV S/ sin red.</TableHead>
+                          <TableHead className="w-[120px] text-right">Total IGV S/</TableHead>
+                          <TableHead className="w-[100px] text-right">Redondeo</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filasCustodia.map((fila, idx) => (
+                          <TableRow key={fila.proveedor}>
+                            <TableCell className="font-medium">{fila.proveedor}</TableCell>
+                            <TableCell>
+                              <Input
+                                value={fila.facturaNro}
+                                onChange={(e) => updateFilaCustodia(idx, 'facturaNro', e.target.value)}
+                                className="bg-white h-8"
+                                placeholder="Nro"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="text"
+                                value={fila.baseUsd ? formatMiles(fila.baseUsd) : ''}
+                                onChange={(e) => updateFilaCustodia(idx, 'baseUsd', parseMiles(e.target.value))}
+                                className="bg-white h-8 text-right"
+                                placeholder="0.00"
+                              />
+                            </TableCell>
+                            <TableCell className="text-right font-mono">{formatMiles(fila.igvUsd)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatMiles(fila.igvSoles)}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{formatMiles(fila.totalIgvSoles, 0)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatRedondeo(fila.redondeo)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                      <TableFooter>
+                        <TableRow className="font-bold">
+                          <TableCell colSpan={2}>TOTALES</TableCell>
+                          <TableCell className="text-right">{formatMiles(totalesCustodia.totalBaseUsd)}</TableCell>
+                          <TableCell className="text-right">{formatMiles(totalesCustodia.totalIgvUsd)}</TableCell>
+                          <TableCell className="text-right">—</TableCell>
+                          <TableCell className="text-right">{formatMiles(totalesCustodia.totalIgvSolesEntero, 0)}</TableCell>
+                          <TableCell className="text-right">{formatRedondeo(totalesCustodia.totalRedondeo)}</TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    </Table>
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
