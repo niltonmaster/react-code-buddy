@@ -170,18 +170,10 @@ export function PantallaPagoFacilND() {
     setTipoComisionMILA(value);
     setProveedorMILA('');
     setFilasCustodia(FILAS_CUSTODIA_LABELS.map(emptyFilaCustodia));
-    setPagoFacilND(prev => ({
+    setPagoFacilND({
       ...emptyFormData,
-      periodoTributario: prev.periodoTributario,
-      fechaPagoServicio: prev.fechaPagoServicio,
-      domicilio: prev.domicilio,
-      expedienteNro: prev.expedienteNro,
-      periodoComision: prev.periodoComision,
-      tcSunatVenta: prev.tcSunatVenta,
-      tcSbs: prev.tcSbs,
-      fechaEmisionLima: prev.fechaEmisionLima,
       proveedor: value === 'custodia' ? 'BBH' : '',
-    }));
+    });
   };
 
   // ─── Efecto de precarga FLAR ─────────────────────────
@@ -469,8 +461,8 @@ export function PantallaPagoFacilND() {
                     <SelectValue placeholder="Seleccionar portafolio" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="FLAR">FLAR (Auto)</SelectItem>
-                    <SelectItem value="MILA">MILA (Manual)</SelectItem>
+                    <SelectItem value="FLAR">FLAR</SelectItem>
+                    <SelectItem value="MILA">MILA</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -794,6 +786,7 @@ export function PantallaPagoFacilND() {
                     <Input
                       value={pagoFacilND.periodoComision}
                       onChange={(e) => updateField('periodoComision', e.target.value)}
+                      className="bg-white"
                     />
                   </div>
                   <div className="space-y-2">
@@ -802,6 +795,7 @@ export function PantallaPagoFacilND() {
                       type="date"
                       value={pagoFacilND.fechaEmisionLima}
                       onChange={(e) => updateField('fechaEmisionLima', e.target.value)}
+                      className="bg-white"
                     />
                   </div>
                 </div>
