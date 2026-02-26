@@ -9,6 +9,7 @@ import {
   CUENTAS_COMISION_ND,
   CuentasComisionPar,
   getCuentaComisionKey,
+  PERSONA_ND,
 } from './constants';
 
 interface Props {
@@ -187,15 +188,18 @@ function TabDistribucionNoDomiciliado({
   };
 
   // Estado editable para Persona y Factura (nuevas columnas)
+  const personaDefault = PERSONA_ND[cuentaKey] || '';
   const facturaDefault = facturaNro ? `OB${facturaNro}` : '';
-  const [personas, setPersonas] = useState(['12000', '12000', '12000', '12000']);
+  const [personas, setPersonas] = useState([personaDefault, personaDefault, personaDefault, personaDefault]);
   const [facturas, setFacturas] = useState([facturaDefault, facturaDefault, facturaDefault, facturaDefault]);
 
-  // Sincronizar factura si cambia facturaNro
+  // Sincronizar factura y persona si cambian los props
   useEffect(() => {
     const val = facturaNro ? `OB${facturaNro}` : '';
     setFacturas([val, val, val, val]);
-  }, [facturaNro]);
+    const p = PERSONA_ND[cuentaKey] || '';
+    setPersonas([p, p, p, p]);
+  }, [facturaNro, cuentaKey]);
 
   const updatePersona = (idx: number, value: string) => {
     setPersonas(prev => prev.map((p, i) => i === idx ? value : p));
