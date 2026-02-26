@@ -927,7 +927,11 @@ export function PantallaPagoFacilND() {
                 </div>
 
                 <div className="mb-6 space-y-1">
-                  <p><span className="font-bold">Factura Nro</span> : {pagoFacilND.facturaNro}</p>
+                  {isCustodia ? (
+                    <p><span className="font-bold">Factura Nros</span> : {filasCustodia.map(f => f.facturaNro || '—').join('     ')}</p>
+                  ) : (
+                    <p><span className="font-bold">Factura Nro</span> : {pagoFacilND.facturaNro}</p>
+                  )}
                   <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
                   {pagoFacilND.domicilio && (
                     <p><span className="font-bold">Domicilio</span> : {pagoFacilND.domicilio}</p>
@@ -976,71 +980,182 @@ export function PantallaPagoFacilND() {
                   <p>(En Soles)</p>
                 </div>
 
-                <p className="mb-6">Por concepto de administración del Portafolio {portafolio || 'FLAR'} llevado a cabo por {pagoFacilND.proveedor}.</p>
+                {isCustodia ? (
+                  /* ═══ HOJA 2 CUSTODIA: Desglose por proveedor ═══ */
+                  <>
+                    <p className="mb-6">Por concepto de servicio de custodia del Portafolio MILA llevado a cabo por Brown Brothers Harriman (BBH).</p>
 
-                <div className="space-y-1 mb-6">
-                  <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
-                  {pagoFacilND.domicilio && (
-                    <p><span className="font-bold">Domicilio</span> : {pagoFacilND.domicilio}</p>
-                  )}
-                  <p><span className="font-bold">Factura N°</span> : {pagoFacilND.facturaNro}</p>
-                  <p><span className="font-bold">Expediente</span> : {pagoFacilND.expedienteNro}</p>
-                  <p><span className="font-bold">Fecha pago del Servicio</span> : {formatFecha(pagoFacilND.fechaPagoServicio)}</p>
-                </div>
-
-                <div className="flex justify-between items-center mb-2">
-                  <div className="border border-black px-4 py-2 bg-gray-100 font-bold">{pagoFacilND.periodoComision || '—'}</div>
-                  <div className="text-right">
-                    <span className="font-bold mr-4">US$</span>
-                    <span className="font-bold">{formatNumber(pagoFacilND.baseUsd, 2)}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mb-6">
-                  <p>Impuesto General a las Ventas - No Domiciliados</p>
-                  <div className="text-right">
-                    <span className="font-bold mr-4">US$</span>
-                    <span className="font-bold">{formatNumber(pagoFacilND.igvUsd, 2)}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-6">
-                  <p><span className="font-bold">T.C.P.P.Venta</span></p>
-                  <p><span className="font-bold">Publicado - SUNAT</span> : {pagoFacilND.tcSunatVenta.toFixed(3)}</p>
-                  <p className="mt-4"><span className="font-bold">T.C.P.P.C.</span></p>
-                  <p><span className="font-bold">Vigente - SBS</span> : {pagoFacilND.tcSbs.toFixed(3)}</p>
-                </div>
-
-                <div className="space-y-2 mb-6">
-                  <p><span className="font-bold">Total Factura US$</span> : {formatNumber(pagoFacilND.baseUsd, 2)}</p>
-                  <p><span className="font-bold">Total Factura S/</span> : {formatNumber(pagoFacilND.totalFacturaSoles, 2)}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <p className="font-bold">Impuesto General a las Ventas No Domiciliados</p>
-                    <div className="flex items-center">
-                      <span className="border border-black px-2 py-1">S/</span>
-                      <span className="border border-black px-4 py-1 font-bold">{formatNumber(pagoFacilND.igvSoles, 2)}</span>
+                    <div className="space-y-1 mb-6">
+                      <p><span className="font-bold">Proveedor</span> : Brown Brothers Harriman</p>
+                      {pagoFacilND.domicilio && (
+                        <p><span className="font-bold">Domicilio</span> : {pagoFacilND.domicilio}</p>
+                      )}
                     </div>
-                  </div>
 
-                  <div className="flex justify-between items-center">
-                    <p className="font-bold">Redondeo</p>
-                    <div className="flex items-center">
-                      <span className="px-2 py-1">S/</span>
-                      <span className="px-4 py-1">{formatRedondeo(pagoFacilND.redondeo)}</span>
+                    <div className="space-y-1 mb-6">
+                      <p><span className="font-bold">Expediente N°</span> : {pagoFacilND.expedienteNro}</p>
+                      <p><span className="font-bold">Fecha pago del Servicio</span> : {formatFecha(pagoFacilND.fechaPagoServicio)}</p>
                     </div>
-                  </div>
 
-                  <div className="flex justify-between items-center">
-                    <p className="font-bold">Total Impuesto General a las Ventas No Domiciliados 18%</p>
-                    <div className="flex items-center">
-                      <span className="border border-black px-2 py-1 bg-gray-100 font-bold">S/</span>
-                      <span className="border border-black px-4 py-1 font-bold text-lg">{formatNumber(pagoFacilND.totalIgvSoles, 2)}</span>
+                    <div className="flex gap-12 mb-6">
+                      <div>
+                        <p><span className="font-bold">T.C.P.P.Venta</span></p>
+                        <p><span className="font-bold">Publicado - SUNAT</span> : {pagoFacilND.tcSunatVenta.toFixed(3)}</p>
+                      </div>
+                      <div>
+                        <p><span className="font-bold">T.C.P.P.</span></p>
+                        <p><span className="font-bold">Vigente - SBS</span> : {pagoFacilND.tcSbs.toFixed(3)}</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
+
+                    {/* Desglose por cada fila/proveedor */}
+                    {filasCustodia.filter(f => f.facturaNro || f.baseUsd > 0).map((fila, idx) => {
+                      const totalFacturaUsd = fila.baseUsd + fila.igvUsd;
+                      const totalFacturaSoles = Number((totalFacturaUsd * pagoFacilND.tcSunatVenta).toFixed(2));
+                      return (
+                        <div key={idx} className="mb-6">
+                          <div className="flex justify-between items-center mb-1">
+                            <p><span className="font-bold">Factura N°</span> : {fila.facturaNro}</p>
+                          </div>
+                          <p className="font-bold">{fila.proveedor}:</p>
+
+                          <div className="ml-8 mt-2 space-y-1">
+                            <div className="flex justify-between items-center">
+                              <div className="border border-black px-4 py-1 bg-gray-100 font-bold">{pagoFacilND.periodoComision || '—'}</div>
+                              <div className="text-right">
+                                <span className="font-bold mr-4">US$</span>
+                                <span className="font-bold">{formatNumber(fila.baseUsd, 2)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <p>Impuesto General a las Ventas - No Domiciliados</p>
+                              <div className="text-right">
+                                <span className="font-bold mr-4">US$</span>
+                                <span className="font-bold">{formatNumber(fila.igvUsd, 2)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <p><span className="font-bold">Total Factura US$</span> : {formatNumber(fila.baseUsd, 2)}    <span className="font-bold">S/</span> : {formatNumber(totalFacturaSoles, 2)}</p>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <p>Impuesto General a las Ventas No Domiciliados</p>
+                              <div className="flex items-center">
+                                <span className="px-2 py-1">S/</span>
+                                <span className="px-4 py-1 font-bold">{formatNumber(fila.igvSoles, 2)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <p>Redondeo</p>
+                              <div className="flex items-center">
+                                <span className="px-2 py-1">S/</span>
+                                <span className="px-4 py-1">{formatRedondeo(fila.redondeo)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <p className="font-bold">Subtotal Impuesto General a las Ventas No domiciliados</p>
+                              <div className="flex items-center">
+                                <span className="border border-black px-2 py-1 font-bold">S/</span>
+                                <span className="border border-black px-4 py-1 font-bold">{formatNumber(fila.totalIgvSoles, 2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Totales generales */}
+                    <div className="border-t-2 border-black pt-4 space-y-3 mt-4">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold">Total Impuesto General a las Ventas - No Domiciliados 18%</p>
+                        <div className="flex items-center">
+                          <span className="border border-black px-2 py-1 bg-gray-100 font-bold">US$</span>
+                          <span className="border border-black px-4 py-1 font-bold">{formatNumber(totalesCustodia.totalIgvUsd, 2)}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold">Total Impuesto General a las Ventas - No Domiciliados 18%</p>
+                        <div className="flex items-center">
+                          <span className="border border-black px-2 py-1 bg-gray-100 font-bold">S/</span>
+                          <span className="border border-black px-4 py-1 font-bold text-lg">{formatNumber(totalesCustodia.totalIgvSolesEntero, 2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* ═══ HOJA 2 ESTÁNDAR (FLAR / MILA Administrativa) ═══ */
+                  <>
+                    <p className="mb-6">Por concepto de administración del Portafolio {portafolio || 'FLAR'} llevado a cabo por {pagoFacilND.proveedor}.</p>
+
+                    <div className="space-y-1 mb-6">
+                      <p><span className="font-bold">Proveedor</span> : {pagoFacilND.proveedor}</p>
+                      {pagoFacilND.domicilio && (
+                        <p><span className="font-bold">Domicilio</span> : {pagoFacilND.domicilio}</p>
+                      )}
+                      <p><span className="font-bold">Factura N°</span> : {pagoFacilND.facturaNro}</p>
+                      <p><span className="font-bold">Expediente</span> : {pagoFacilND.expedienteNro}</p>
+                      <p><span className="font-bold">Fecha pago del Servicio</span> : {formatFecha(pagoFacilND.fechaPagoServicio)}</p>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="border border-black px-4 py-2 bg-gray-100 font-bold">{pagoFacilND.periodoComision || '—'}</div>
+                      <div className="text-right">
+                        <span className="font-bold mr-4">US$</span>
+                        <span className="font-bold">{formatNumber(pagoFacilND.baseUsd, 2)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-6">
+                      <p>Impuesto General a las Ventas - No Domiciliados</p>
+                      <div className="text-right">
+                        <span className="font-bold mr-4">US$</span>
+                        <span className="font-bold">{formatNumber(pagoFacilND.igvUsd, 2)}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mb-6">
+                      <p><span className="font-bold">T.C.P.P.Venta</span></p>
+                      <p><span className="font-bold">Publicado - SUNAT</span> : {pagoFacilND.tcSunatVenta.toFixed(3)}</p>
+                      <p className="mt-4"><span className="font-bold">T.C.P.P.C.</span></p>
+                      <p><span className="font-bold">Vigente - SBS</span> : {pagoFacilND.tcSbs.toFixed(3)}</p>
+                    </div>
+
+                    <div className="space-y-2 mb-6">
+                      <p><span className="font-bold">Total Factura US$</span> : {formatNumber(pagoFacilND.baseUsd, 2)}</p>
+                      <p><span className="font-bold">Total Factura S/</span> : {formatNumber(pagoFacilND.totalFacturaSoles, 2)}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold">Impuesto General a las Ventas No Domiciliados</p>
+                        <div className="flex items-center">
+                          <span className="border border-black px-2 py-1">S/</span>
+                          <span className="border border-black px-4 py-1 font-bold">{formatNumber(pagoFacilND.igvSoles, 2)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold">Redondeo</p>
+                        <div className="flex items-center">
+                          <span className="px-2 py-1">S/</span>
+                          <span className="px-4 py-1">{formatRedondeo(pagoFacilND.redondeo)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold">Total Impuesto General a las Ventas No Domiciliados 18%</p>
+                        <div className="flex items-center">
+                          <span className="border border-black px-2 py-1 bg-gray-100 font-bold">S/</span>
+                          <span className="border border-black px-4 py-1 font-bold text-lg">{formatNumber(pagoFacilND.totalIgvSoles, 2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
