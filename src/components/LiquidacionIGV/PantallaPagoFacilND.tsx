@@ -171,6 +171,11 @@ export function PantallaPagoFacilND() {
     // Setear TC SUNAT y disparar recálculos
     updateField('tcSunatVenta', ventaSunat);
 
+    // Autocompletar TC SBS si existe
+    if (tcModalData.sbs) {
+      updateField('tcSbs', tcModalData.sbs.venta);
+    }
+
     setTcModalOpen(false);
     toast.success(`TC SUNAT Venta aplicado: ${ventaSunat}`);
   };
