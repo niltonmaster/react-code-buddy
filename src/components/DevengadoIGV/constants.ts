@@ -129,11 +129,20 @@ export const CUENTAS_COMISION_ND: Record<string, CuentasComisionPar> = {
   },
 };
 
+// Código de Persona por portafolio + proveedor
+export const PERSONA_ND: Record<string, string> = {
+  'FLAR_CONJUNTO': '12000',
+  'FLAR_ALLSPRING': '13562',
+  'FLAR_WELLINGTON': '13561',
+  'MILA_BCP': '16533',
+  'MILA_COMPASS': '16535',
+  'MILA_BBVA': '16531',
+};
+
 /** Obtiene la clave de lookup para CUENTAS_COMISION_ND */
 export function getCuentaComisionKey(portafolio: string, proveedores: string[]): string {
   if (!portafolio) return '';
   const proveedoresUpper = proveedores.map(p => p.toUpperCase());
-  // Si hay más de un proveedor → CONJUNTO
   if (proveedoresUpper.length > 1) return `${portafolio.toUpperCase()}_CONJUNTO`;
   return `${portafolio.toUpperCase()}_${proveedoresUpper[0] || ''}`;
 }
