@@ -816,7 +816,7 @@ export function DevengadoIGV() {
           </TabsContent>
 
           <TabsContent value="distribucion">
-            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} portafolio={portafolioND} proveedores={proveedoresND} />
+            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} portafolio={portafolioND} proveedores={proveedoresND} facturaNro={formData.documentoNumero} />
           </TabsContent>
         </Tabs>
 
