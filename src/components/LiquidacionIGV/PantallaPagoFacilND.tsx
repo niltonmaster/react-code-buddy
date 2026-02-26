@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, FileText, Printer, Download, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -73,9 +74,13 @@ export function PantallaPagoFacilND() {
   const [portafolio, setPortafolio] = useState<'FLAR' | 'MILA' | ''>('');
   const [tipoFLAR, setTipoFLAR] = useState<string>('');
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
+  const [proveedoresMILA, setProveedoresMILA] = useState<string[]>([]);
 
-  // Derivar proveedoresSeleccionados del tipoFLAR
+  const PROVEEDORES_MILA = ['BBVA', 'COMPASS', 'BCP'];
+
+  // Derivar proveedoresSeleccionados según portafolio
   const proveedoresSeleccionados = useMemo(() => {
+    if (portafolio === 'MILA') return proveedoresMILA;
     if (portafolio !== 'FLAR') return [];
     switch (tipoFLAR) {
       case 'conjunto': return ['ALLSPRING', 'WELLINGTON'];
@@ -83,7 +88,7 @@ export function PantallaPagoFacilND() {
       case 'wellington': return ['WELLINGTON'];
       default: return [];
     }
-  }, [portafolio, tipoFLAR]);
+  }, [portafolio, tipoFLAR, proveedoresMILA]);
 
   // Datos del formulario
   const [pagoFacilND, setPagoFacilND] = useState<PagoFacilND>(emptyFormData);
@@ -107,6 +112,7 @@ export function PantallaPagoFacilND() {
     setPortafolio(value);
     setTipoFLAR('');
     setPeriodoSeleccionado('');
+    setProveedoresMILA([]);
     setPagoFacilND(emptyFormData);
     setReadonlyFields(getDefaultReadonlyFields());
     setAutofilledCase(null);
@@ -362,6 +368,28 @@ export function PantallaPagoFacilND() {
                 </div>
               )}
             </div>
+
+            {/* Proveedores MILA (checkboxes) */}
+            {portafolio === 'MILA' && (
+              <div className="space-y-2">
+                <Label className="font-semibold">Proveedor(es) *</Label>
+                <div className="flex gap-4 flex-wrap">
+                  {PROVEEDORES_MILA.map((prov) => (
+                    <label key={prov} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={proveedoresMILA.includes(prov)}
+                        onCheckedChange={(checked) => {
+                          setProveedoresMILA(prev =>
+                            checked ? [...prev, prov] : prev.filter(p => p !== prov)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">{prov}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Status badges */}
             <div className="flex gap-2 flex-wrap">
