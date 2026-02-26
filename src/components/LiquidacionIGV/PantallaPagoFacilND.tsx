@@ -1,16 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, FileText, Printer, Download, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, FileText, Printer, Download, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import html2pdf from 'html2pdf.js';
+import tcSbsData from '@/data/tc_sbs.json';
+import tcSunatData from '@/data/tc_sunat.json';
 import {
   getPeriodosFLAR,
   findCase,
@@ -129,6 +131,49 @@ export function PantallaPagoFacilND() {
   const [noMatchWarning, setNoMatchWarning] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+
+  // ─── Modal Consulta Tipo de Cambio ─────────────────────
+  const [tcModalOpen, setTcModalOpen] = useState(false);
+  const [tcModalData, setTcModalData] = useState<{
+    fecha: string;
+    fechaAnterior: string;
+    sunat: { compra: number; venta: number } | null;
+    sbs: { compra: number; venta: number } | null;
+  } | null>(null);
+
+  const handleConsultarTC = () => {
+    const fechaPago = pagoFacilND.fechaPagoServicio;
+    if (!fechaPago) return;
+
+    // Calcular D-1
+    const d = new Date(fechaPago + 'T00:00:00');
+    const dMinus1 = new Date(d);
+    dMinus1.setDate(dMinus1.getDate() - 1);
+    const fechaAnterior = dMinus1.toISOString().split('T')[0];
+
+    // Buscar en JSONs
+    const sunatEntry = (tcSunatData as any[]).find((e) => e.date === fechaPago);
+    const sbsEntry = (tcSbsData as any[]).find((e) => e.date === fechaAnterior);
+
+    setTcModalData({
+      fecha: fechaPago,
+      fechaAnterior,
+      sunat: sunatEntry ? { compra: sunatEntry.compra, venta: sunatEntry.venta } : null,
+      sbs: sbsEntry ? { compra: sbsEntry.compra, venta: sbsEntry.venta } : null,
+    });
+    setTcModalOpen(true);
+  };
+
+  const handleUsarVentaSunat = () => {
+    if (!tcModalData?.sunat) return;
+    const ventaSunat = tcModalData.sunat.venta;
+
+    // Setear TC SUNAT y disparar recálculos
+    updateField('tcSunatVenta', ventaSunat);
+
+    setTcModalOpen(false);
+    toast.success(`TC SUNAT Venta aplicado: ${ventaSunat}`);
+  };
 
   // Listas dinámicas
   const periodosDisponibles = useMemo(() => {
@@ -703,14 +748,22 @@ export function PantallaPagoFacilND() {
                 </div>
                 <div className="space-y-2">
                   <Label>TC Sunat Venta *</Label>
-                  <Input
-                    type="number"
-                    step="0.001"
-                    value={pagoFacilND.tcSunatVenta || ''}
-                    onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
-                    readOnly={isReadonly('tcSunatVenta')}
-                    className={fieldBg('tcSunatVenta')}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={pagoFacilND.tcSunatVenta || ''}
+                      onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
+                      readOnly={isReadonly('tcSunatVenta')}
+                      className={fieldBg('tcSunatVenta')}
+                    />
+                    {pagoFacilND.fechaPagoServicio && (
+                      <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={handleConsultarTC}>
+                        <Search className="h-4 w-4 mr-1" />
+                        Consultar TC
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>IGV S/ (sin redondeo)</Label>
@@ -763,13 +816,21 @@ export function PantallaPagoFacilND() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>TC Sunat Venta *</Label>
-                    <Input
-                      type="number"
-                      step="0.001"
-                      value={pagoFacilND.tcSunatVenta || ''}
-                      onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
-                      className="bg-white"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        step="0.001"
+                        value={pagoFacilND.tcSunatVenta || ''}
+                        onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
+                        className="bg-white"
+                      />
+                      {pagoFacilND.fechaPagoServicio && (
+                        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={handleConsultarTC}>
+                          <Search className="h-4 w-4 mr-1" />
+                          Consultar TC
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>TC SBS</Label>
@@ -1188,6 +1249,64 @@ export function PantallaPagoFacilND() {
               Generar devengado IGV
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Modal Consulta Tipo de Cambio ═══ */}
+      <Dialog open={tcModalOpen} onOpenChange={setTcModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {tcModalData?.sunat || tcModalData?.sbs
+                ? `Tipo de Cambio para ${tcModalData?.fecha}`
+                : 'Consulta Tipo de Cambio'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {tcModalData?.sunat || tcModalData?.sbs ? (
+            <div className="space-y-4">
+              {tcModalData.sunat && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">SUNAT (Publicado)</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <span className="text-muted-foreground">Compra:</span>
+                    <span className="font-mono font-medium">{tcModalData.sunat.compra}</span>
+                    <span className="text-muted-foreground">Venta:</span>
+                    <span className="font-mono font-medium">{tcModalData.sunat.venta}</span>
+                  </div>
+                </div>
+              )}
+              {tcModalData?.sbs && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">SBS (Cierre día anterior {tcModalData.fechaAnterior})</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <span className="text-muted-foreground">Compra:</span>
+                    <span className="font-mono font-medium">{tcModalData.sbs.compra}</span>
+                    <span className="text-muted-foreground">Venta:</span>
+                    <span className="font-mono font-medium">{tcModalData.sbs.venta}</span>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground italic">
+                El tipo de cambio SUNAT corresponde al cierre SBS del día anterior.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No se encontró tipo de cambio cargado para la fecha seleccionada. Puede ingresar el TC manualmente.
+            </p>
+          )}
+
+          <DialogFooter className="gap-2">
+            {tcModalData?.sunat && (
+              <Button onClick={handleUsarVentaSunat}>
+                Usar Venta SUNAT
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setTcModalOpen(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
