@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, FileText, Printer, Download, RefreshCw, AlertTriangle } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import html2pdf from 'html2pdf.js';
@@ -65,6 +65,30 @@ const emptyFormData: PagoFacilND = {
   fechaEmisionLima: new Date().toISOString().split('T')[0],
 };
 
+// ─── Tipos Custodia ──────────────────────────────────────
+
+interface FilaCustodia {
+  proveedor: string;
+  facturaNro: string;
+  baseUsd: number;
+  igvUsd: number;
+  igvSoles: number;
+  totalIgvSoles: number;
+  redondeo: number;
+}
+
+const FILAS_CUSTODIA_LABELS = ['BBVA', 'COMPASS', 'CREDICORP'];
+
+const emptyFilaCustodia = (prov: string): FilaCustodia => ({
+  proveedor: prov,
+  facturaNro: '',
+  baseUsd: 0,
+  igvUsd: 0,
+  igvSoles: 0,
+  totalIgvSoles: 0,
+  redondeo: 0,
+});
+
 // ─── Componente principal ────────────────────────────────
 
 export function PantallaPagoFacilND() {
@@ -74,13 +98,21 @@ export function PantallaPagoFacilND() {
   const [portafolio, setPortafolio] = useState<'FLAR' | 'MILA' | ''>('');
   const [tipoFLAR, setTipoFLAR] = useState<string>('');
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
-  const [proveedoresMILA, setProveedoresMILA] = useState<string[]>([]);
 
-  const PROVEEDORES_MILA = ['BBVA', 'COMPASS', 'BCP'];
+  // ─── MILA state ──────────────────────────────────────
+  const [tipoComisionMILA, setTipoComisionMILA] = useState<'administrativa' | 'custodia' | ''>('');
+  const [proveedorMILA, setProveedorMILA] = useState<string>('');
+  const [filasCustodia, setFilasCustodia] = useState<FilaCustodia[]>(
+    FILAS_CUSTODIA_LABELS.map(emptyFilaCustodia)
+  );
 
   // Derivar proveedoresSeleccionados según portafolio
   const proveedoresSeleccionados = useMemo(() => {
-    if (portafolio === 'MILA') return proveedoresMILA;
+    if (portafolio === 'MILA') {
+      if (tipoComisionMILA === 'administrativa' && proveedorMILA) return [proveedorMILA];
+      if (tipoComisionMILA === 'custodia') return ['BBH'];
+      return [];
+    }
     if (portafolio !== 'FLAR') return [];
     switch (tipoFLAR) {
       case 'conjunto': return ['ALLSPRING', 'WELLINGTON'];
@@ -88,7 +120,7 @@ export function PantallaPagoFacilND() {
       case 'wellington': return ['WELLINGTON'];
       default: return [];
     }
-  }, [portafolio, tipoFLAR, proveedoresMILA]);
+  }, [portafolio, tipoFLAR, tipoComisionMILA, proveedorMILA]);
 
   // Datos del formulario
   const [pagoFacilND, setPagoFacilND] = useState<PagoFacilND>(emptyFormData);
@@ -112,7 +144,9 @@ export function PantallaPagoFacilND() {
     setPortafolio(value);
     setTipoFLAR('');
     setPeriodoSeleccionado('');
-    setProveedoresMILA([]);
+    setTipoComisionMILA('');
+    setProveedorMILA('');
+    setFilasCustodia(FILAS_CUSTODIA_LABELS.map(emptyFilaCustodia));
     setPagoFacilND(emptyFormData);
     setReadonlyFields(getDefaultReadonlyFields());
     setAutofilledCase(null);
@@ -132,6 +166,24 @@ export function PantallaPagoFacilND() {
     setPeriodoSeleccionado(value);
   };
 
+  const handleTipoComisionMILAChange = (value: 'administrativa' | 'custodia') => {
+    setTipoComisionMILA(value);
+    setProveedorMILA('');
+    setFilasCustodia(FILAS_CUSTODIA_LABELS.map(emptyFilaCustodia));
+    setPagoFacilND(prev => ({
+      ...emptyFormData,
+      periodoTributario: prev.periodoTributario,
+      fechaPagoServicio: prev.fechaPagoServicio,
+      domicilio: prev.domicilio,
+      expedienteNro: prev.expedienteNro,
+      periodoComision: prev.periodoComision,
+      tcSunatVenta: prev.tcSunatVenta,
+      tcSbs: prev.tcSbs,
+      fechaEmisionLima: prev.fechaEmisionLima,
+      proveedor: value === 'custodia' ? 'BBH' : '',
+    }));
+  };
+
   // ─── Efecto de precarga FLAR ─────────────────────────
 
   useEffect(() => {
@@ -143,7 +195,6 @@ export function PantallaPagoFacilND() {
     if (!caseEntry) {
       setNoMatchWarning(true);
       setAutofilledCase(null);
-      // Dejar editable (modo manual dentro de FLAR)
       setPagoFacilND({
         ...emptyFormData,
         proveedor: proveedoresSeleccionados.join(' + '),
@@ -166,27 +217,81 @@ export function PantallaPagoFacilND() {
     toast.success(`Datos cargados: ${result.casoLabel}`);
   }, [portafolio, proveedoresSeleccionados, periodoSeleccionado]);
 
+  // ─── Recalcular grilla custodia cuando cambia TC SUNAT ─────
+  useEffect(() => {
+    if (portafolio !== 'MILA' || tipoComisionMILA !== 'custodia') return;
+    setFilasCustodia(prev => prev.map(fila => recalcFilaCustodia(fila, pagoFacilND.tcSunatVenta)));
+  }, [pagoFacilND.tcSunatVenta]);
+
   // ─── Update field con recálculos ─────────────────────
 
   const updateField = <K extends keyof PagoFacilND>(field: K, value: PagoFacilND[K]) => {
     setPagoFacilND(prev => {
       const updated = { ...prev, [field]: value };
 
-      if (field === 'baseUsd') {
-        updated.igvUsd = Number((Number(value) * 0.18).toFixed(2));
-      }
+      // Solo recalcular factura individual si NO es custodia MILA
+      if (!(portafolio === 'MILA' && tipoComisionMILA === 'custodia')) {
+        if (field === 'baseUsd') {
+          updated.igvUsd = Number((Number(value) * 0.18).toFixed(2));
+        }
 
-      if (field === 'igvUsd' || field === 'tcSunatVenta' || field === 'baseUsd') {
-        updated.igvSoles = Number((updated.igvUsd * updated.tcSunatVenta).toFixed(2));
-        updated.totalIgvSoles = Math.round(updated.igvSoles);
-        updated.redondeo = Number((updated.totalIgvSoles - updated.igvSoles).toFixed(2));
-        updated.importePagarSoles = updated.totalIgvSoles;
-        updated.totalFacturaSoles = Number((updated.baseUsd * updated.tcSunatVenta).toFixed(2));
+        if (field === 'igvUsd' || field === 'tcSunatVenta' || field === 'baseUsd') {
+          updated.igvSoles = Number((updated.igvUsd * updated.tcSunatVenta).toFixed(2));
+          updated.totalIgvSoles = Math.round(updated.igvSoles);
+          updated.redondeo = Number((updated.totalIgvSoles - updated.igvSoles).toFixed(2));
+          updated.importePagarSoles = updated.totalIgvSoles;
+          updated.totalFacturaSoles = Number((updated.baseUsd * updated.tcSunatVenta).toFixed(2));
+        }
       }
 
       return updated;
     });
   };
+
+  // ─── Custodia: recalc helpers ─────────────────────────
+
+  const recalcFilaCustodia = (fila: FilaCustodia, tc: number): FilaCustodia => {
+    const igvUsd = Number((fila.baseUsd * 0.18).toFixed(2));
+    const igvSoles = Number((igvUsd * tc).toFixed(2));
+    const totalIgvSoles = Math.round(igvSoles);
+    const redondeo = Number((totalIgvSoles - igvSoles).toFixed(2));
+    return { ...fila, igvUsd, igvSoles, totalIgvSoles, redondeo };
+  };
+
+  const updateFilaCustodia = (index: number, field: 'facturaNro' | 'baseUsd', value: string | number) => {
+    setFilasCustodia(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'baseUsd') {
+        updated[index] = recalcFilaCustodia(updated[index], pagoFacilND.tcSunatVenta);
+      }
+      return updated;
+    });
+  };
+
+  // Totales custodia consolidados
+  const totalesCustodia = useMemo(() => {
+    const totalBaseUsd = filasCustodia.reduce((s, f) => s + f.baseUsd, 0);
+    const totalIgvUsd = filasCustodia.reduce((s, f) => s + f.igvUsd, 0);
+    const totalIgvSolesEntero = filasCustodia.reduce((s, f) => s + f.totalIgvSoles, 0);
+    const totalRedondeo = filasCustodia.reduce((s, f) => s + f.redondeo, 0);
+    return { totalBaseUsd, totalIgvUsd, totalIgvSolesEntero, totalRedondeo: Number(totalRedondeo.toFixed(2)) };
+  }, [filasCustodia]);
+
+  // Sincronizar importePagarSoles con totales custodia
+  useEffect(() => {
+    if (portafolio === 'MILA' && tipoComisionMILA === 'custodia') {
+      setPagoFacilND(prev => ({
+        ...prev,
+        importePagarSoles: totalesCustodia.totalIgvSolesEntero,
+        baseUsd: totalesCustodia.totalBaseUsd,
+        igvUsd: totalesCustodia.totalIgvUsd,
+        igvSoles: filasCustodia.reduce((s, f) => s + f.igvSoles, 0),
+        totalIgvSoles: totalesCustodia.totalIgvSolesEntero,
+        redondeo: totalesCustodia.totalRedondeo,
+      }));
+    }
+  }, [totalesCustodia, portafolio, tipoComisionMILA]);
 
   // ─── Formato ─────────────────────────────────────────
 
@@ -199,7 +304,6 @@ export function PantallaPagoFacilND() {
     return num < 0 ? `(${formatted})` : formatted;
   };
 
-  // Máscara de miles: 143049.31 → "143,049.31"
   const formatMiles = (num: number, decimals: number = 2) =>
     num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
@@ -208,6 +312,7 @@ export function PantallaPagoFacilND() {
     const num = parseFloat(cleaned);
     return isNaN(num) ? 0 : num;
   };
+
   const formatFecha = (fecha: string) => {
     if (!fecha) return '—';
     const [year, month, day] = fecha.split('-');
@@ -218,7 +323,6 @@ export function PantallaPagoFacilND() {
   const getMesAño = () => {
     if (!pagoFacilND.periodoTributario) return '';
     const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SETIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-    // Soportar formatos MM-YYYY, MMYYYY, YYYYMM
     const val = pagoFacilND.periodoTributario.trim();
     if (val.includes('-')) {
       const [mes, año] = val.split('-');
@@ -226,7 +330,6 @@ export function PantallaPagoFacilND() {
       return meses[mesIdx] ? `${meses[mesIdx]} DE ${año}` : val;
     }
     if (val.length === 6) {
-      // Intentar MMYYYY o YYYYMM
       let mesNum = parseInt(val.substring(0, 2));
       let año = val.substring(2);
       if (mesNum < 1 || mesNum > 12) {
@@ -240,20 +343,50 @@ export function PantallaPagoFacilND() {
 
   // ─── Validación ──────────────────────────────────────
 
-  // Validar formato MM-YYYY para periodo tributario
   const periodoTributarioRegex = /^(0[1-9]|1[0-2])-\d{4}$/;
   const isPeriodoTributarioValid = periodoTributarioRegex.test(pagoFacilND.periodoTributario.trim());
 
-  const camposRequeridos = {
-    portafolio: !!portafolio,
-    proveedores: portafolio === 'MILA' || proveedoresSeleccionados.length > 0,
-    fechaPagoServicio: !!pagoFacilND.fechaPagoServicio,
-    periodoTributario: isPeriodoTributarioValid,
-    tcSunat: pagoFacilND.tcSunatVenta > 0,
-    baseUsd: pagoFacilND.baseUsd > 0,
-    facturaNro: !!pagoFacilND.facturaNro,
-    expediente: !!pagoFacilND.expedienteNro,
-  };
+  // Validación diferenciada MILA vs FLAR
+  const camposRequeridos = useMemo(() => {
+    const base = {
+      portafolio: !!portafolio,
+      fechaPagoServicio: !!pagoFacilND.fechaPagoServicio,
+      periodoTributario: isPeriodoTributarioValid,
+      tcSunat: pagoFacilND.tcSunatVenta > 0,
+      expediente: !!pagoFacilND.expedienteNro,
+    };
+
+    if (portafolio === 'MILA') {
+      if (tipoComisionMILA === 'administrativa') {
+        return {
+          ...base,
+          tipoComision: true,
+          proveedorMILA: !!proveedorMILA,
+          facturaNro: !!pagoFacilND.facturaNro,
+          baseUsd: pagoFacilND.baseUsd > 0,
+        };
+      }
+      if (tipoComisionMILA === 'custodia') {
+        // Al menos 1 fila completa
+        const alMenosUnaFila = filasCustodia.some(f => !!f.facturaNro && f.baseUsd > 0);
+        return {
+          ...base,
+          tipoComision: true,
+          custodiaFilas: alMenosUnaFila,
+        };
+      }
+      // MILA sin tipo comisión
+      return { ...base, tipoComision: false };
+    }
+
+    // FLAR
+    return {
+      ...base,
+      proveedores: proveedoresSeleccionados.length > 0,
+      facturaNro: !!pagoFacilND.facturaNro,
+      baseUsd: pagoFacilND.baseUsd > 0,
+    };
+  }, [portafolio, pagoFacilND, isPeriodoTributarioValid, tipoComisionMILA, proveedorMILA, proveedoresSeleccionados, filasCustodia]);
 
   const canPreview = Object.values(camposRequeridos).every(Boolean);
 
@@ -261,22 +394,30 @@ export function PantallaPagoFacilND() {
     const labels: Record<string, string> = {
       portafolio: 'Portafolio',
       proveedores: 'Proveedor(es)',
+      proveedorMILA: 'Proveedor',
       fechaPagoServicio: 'Fecha Pago Servicio',
       periodoTributario: 'Periodo Tributario (formato MM-YYYY)',
       tcSunat: 'TC SUNAT',
       baseUsd: 'Total Factura US$',
       facturaNro: 'Factura Nro',
       expediente: 'Expediente Nro',
+      tipoComision: 'Tipo de Comisión',
+      custodiaFilas: 'Al menos 1 fila completa (Nro Factura + Base USD)',
     };
     return Object.entries(camposRequeridos)
       .filter(([, ok]) => !ok)
-      .map(([key]) => labels[key]);
+      .map(([key]) => labels[key] || key);
   };
 
   // ─── Helpers para readonly UI ────────────────────────
 
   const isReadonly = (field: string) => readonlyFields[field] === true;
   const fieldBg = (field: string) => isReadonly(field) ? 'bg-muted' : 'bg-white';
+
+  // ─── Es MILA activo ──────────────────────────────────
+  const isMILA = portafolio === 'MILA';
+  const isCustodia = isMILA && tipoComisionMILA === 'custodia';
+  const isAdministrativa = isMILA && tipoComisionMILA === 'administrativa';
 
   // ─── Export PDF ──────────────────────────────────────
 
@@ -313,7 +454,7 @@ export function PantallaPagoFacilND() {
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Pago Fácil – IGV No Domiciliado (1041)</h1>
 
-        {/* ═══ Sección 0: Selección Portafolio → Proveedor → Periodo ═══ */}
+        {/* ═══ Sección 0: Selección de Caso ═══ */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Selección de Caso</CardTitle>
@@ -367,33 +508,58 @@ export function PantallaPagoFacilND() {
                   </Select>
                 </div>
               )}
+
+              {/* Tipo Comisión MILA */}
+              {isMILA && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Tipo de Comisión *</Label>
+                  <Select value={tipoComisionMILA} onValueChange={(v) => handleTipoComisionMILAChange(v as 'administrativa' | 'custodia')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="administrativa">Administrativa</SelectItem>
+                      <SelectItem value="custodia">Custodia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Proveedor único MILA Administrativa */}
+              {isAdministrativa && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Proveedor *</Label>
+                  <Select value={proveedorMILA} onValueChange={(v) => {
+                    setProveedorMILA(v);
+                    updateField('proveedor', v);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar proveedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BBVA">BBVA</SelectItem>
+                      <SelectItem value="BCP">BCP</SelectItem>
+                      <SelectItem value="COMPASS">COMPASS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            {/* Proveedores MILA (checkboxes) */}
-            {portafolio === 'MILA' && (
+            {/* Proveedor Cabecera BBH (custodia) */}
+            {isCustodia && (
               <div className="space-y-2">
-                <Label className="font-semibold">Proveedor(es) *</Label>
-                <div className="flex gap-4 flex-wrap">
-                  {PROVEEDORES_MILA.map((prov) => (
-                    <label key={prov} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={proveedoresMILA.includes(prov)}
-                        onCheckedChange={(checked) => {
-                          setProveedoresMILA(prev =>
-                            checked ? [...prev, prov] : prev.filter(p => p !== prov)
-                          );
-                        }}
-                      />
-                      <span className="text-sm">{prov}</span>
-                    </label>
-                  ))}
-                </div>
+                <Label className="font-semibold">Proveedor Cabecera</Label>
+                <Input value="BBH" readOnly className="bg-muted max-w-xs" />
               </div>
             )}
 
             {/* Status badges */}
             <div className="flex gap-2 flex-wrap">
               {portafolio && <Badge variant="outline">{portafolio}</Badge>}
+              {isMILA && tipoComisionMILA && (
+                <Badge variant="secondary">{tipoComisionMILA === 'administrativa' ? 'Administrativa' : 'Custodia'}</Badge>
+              )}
               {proveedoresSeleccionados.length > 0 && (
                 <Badge variant="secondary">{proveedoresSeleccionados.join(' + ')}</Badge>
               )}
@@ -422,7 +588,6 @@ export function PantallaPagoFacilND() {
                   value={pagoFacilND.periodoTributario}
                   onChange={(e) => updateField('periodoTributario', e.target.value)}
                   onBlur={(e) => {
-                    // Autoconversión YYYYMM → MM-YYYY
                     const val = e.target.value.trim();
                     if (/^\d{6}$/.test(val)) {
                       const yyyy = val.substring(0, 4);
@@ -468,24 +633,30 @@ export function PantallaPagoFacilND() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Factura Nro *</Label>
-                <Input
-                  value={pagoFacilND.facturaNro}
-                  onChange={(e) => updateField('facturaNro', e.target.value)}
-                  readOnly={isReadonly('facturaNro')}
-                  className={fieldBg('facturaNro')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Proveedor</Label>
-                <Input
-                  value={pagoFacilND.proveedor}
-                  onChange={(e) => updateField('proveedor', e.target.value)}
-                  readOnly={isReadonly('proveedor')}
-                  className={fieldBg('proveedor')}
-                />
-              </div>
+              {/* Factura Nro: solo si NO es custodia (custodia usa grilla) */}
+              {!isCustodia && (
+                <div className="space-y-2">
+                  <Label>Factura Nro *</Label>
+                  <Input
+                    value={pagoFacilND.facturaNro}
+                    onChange={(e) => updateField('facturaNro', e.target.value)}
+                    readOnly={isReadonly('facturaNro')}
+                    className={fieldBg('facturaNro')}
+                  />
+                </div>
+              )}
+              {/* Proveedor: solo si NO es MILA (MILA lo maneja arriba) */}
+              {!isMILA && (
+                <div className="space-y-2">
+                  <Label>Proveedor</Label>
+                  <Input
+                    value={pagoFacilND.proveedor}
+                    onChange={(e) => updateField('proveedor', e.target.value)}
+                    readOnly={isReadonly('proveedor')}
+                    className={fieldBg('proveedor')}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Fecha Pago del Servicio *</Label>
                 <Input
@@ -516,55 +687,32 @@ export function PantallaPagoFacilND() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ═══ Sección 3: Conversión / Cálculo ═══ */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Conversión / Cálculo</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            {/* Campos comunes de TC */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Total Factura US$ *</Label>
-                <Input
-                  type="text"
-                  value={formatMiles(pagoFacilND.baseUsd)}
-                  onChange={(e) => updateField('baseUsd', parseMiles(e.target.value))}
-                  readOnly={isReadonly('baseUsd')}
-                  className={fieldBg('baseUsd')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>IGV No Domiciliado US$</Label>
-                <Input type="text" value={formatMiles(pagoFacilND.igvUsd)} readOnly className="bg-muted" />
-              </div>
               <div className="space-y-2">
                 <Label>TC Sunat Venta *</Label>
                 <Input
                   type="number"
                   step="0.001"
-                  value={pagoFacilND.tcSunatVenta}
+                  value={pagoFacilND.tcSunatVenta || ''}
                   onChange={(e) => updateField('tcSunatVenta', Number(e.target.value))}
                   readOnly={isReadonly('tcSunatVenta')}
                   className={fieldBg('tcSunatVenta')}
                 />
               </div>
               <div className="space-y-2">
-                <Label>IGV S/ (sin redondeo)</Label>
-                <Input type="text" value={formatMiles(pagoFacilND.igvSoles)} readOnly className="bg-muted" />
-              </div>
-              <div className="space-y-2">
-                <Label>Redondeo</Label>
-                <Input type="text" value={formatRedondeo(pagoFacilND.redondeo)} readOnly className="bg-muted" />
-              </div>
-              <div className="space-y-2">
-                <Label>Total IGV S/ (entero)</Label>
-                <Input type="text" value={formatMiles(pagoFacilND.totalIgvSoles, 0)} readOnly className="bg-muted font-bold" />
-              </div>
-              <div className="space-y-2">
                 <Label>TC SBS</Label>
                 <Input
                   type="number"
                   step="0.001"
-                  value={pagoFacilND.tcSbs}
+                  value={pagoFacilND.tcSbs || ''}
                   onChange={(e) => updateField('tcSbs', Number(e.target.value))}
                   readOnly={isReadonly('tcSbs')}
                   className={fieldBg('tcSbs')}
@@ -579,17 +727,109 @@ export function PantallaPagoFacilND() {
                   className={fieldBg('periodoComision')}
                 />
               </div>
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2">
                 <Label>Fecha Emisión Lima</Label>
                 <Input
                   type="date"
                   value={pagoFacilND.fechaEmisionLima}
                   onChange={(e) => updateField('fechaEmisionLima', e.target.value)}
                   readOnly={isReadonly('fechaEmisionLima')}
-                  className={`max-w-xs ${fieldBg('fechaEmisionLima')}`}
+                  className={fieldBg('fechaEmisionLima')}
                 />
               </div>
             </div>
+
+            {/* ── Bloque factura individual (FLAR o Administrativa) ── */}
+            {!isCustodia && (
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                <div className="space-y-2">
+                  <Label>Total Factura US$ *</Label>
+                  <Input
+                    type="text"
+                    value={formatMiles(pagoFacilND.baseUsd)}
+                    onChange={(e) => updateField('baseUsd', parseMiles(e.target.value))}
+                    readOnly={isReadonly('baseUsd')}
+                    className={fieldBg('baseUsd')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>IGV No Domiciliado US$</Label>
+                  <Input type="text" value={formatMiles(pagoFacilND.igvUsd)} readOnly className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>IGV S/ (sin redondeo)</Label>
+                  <Input type="text" value={formatMiles(pagoFacilND.igvSoles)} readOnly className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Redondeo</Label>
+                  <Input type="text" value={formatRedondeo(pagoFacilND.redondeo)} readOnly className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total IGV S/ (entero)</Label>
+                  <Input type="text" value={formatMiles(pagoFacilND.totalIgvSoles, 0)} readOnly className="bg-muted font-bold" />
+                </div>
+              </div>
+            )}
+
+            {/* ── Grilla Custodia (3 filas fijas) ── */}
+            {isCustodia && (
+              <div className="pt-4 border-t border-border space-y-4">
+                <Label className="font-semibold text-base">Facturas por Proveedor (Custodia)</Label>
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">Proveedor</TableHead>
+                        <TableHead className="w-[160px]">Nro Factura</TableHead>
+                        <TableHead className="w-[140px] text-right">Base USD</TableHead>
+                        <TableHead className="w-[120px] text-right">IGV USD (18%)</TableHead>
+                        <TableHead className="w-[140px] text-right">IGV S/ sin red.</TableHead>
+                        <TableHead className="w-[120px] text-right">Total IGV S/</TableHead>
+                        <TableHead className="w-[100px] text-right">Redondeo</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filasCustodia.map((fila, idx) => (
+                        <TableRow key={fila.proveedor}>
+                          <TableCell className="font-medium">{fila.proveedor}</TableCell>
+                          <TableCell>
+                            <Input
+                              value={fila.facturaNro}
+                              onChange={(e) => updateFilaCustodia(idx, 'facturaNro', e.target.value)}
+                              className="bg-white h-8"
+                              placeholder="Nro"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="text"
+                              value={fila.baseUsd ? formatMiles(fila.baseUsd) : ''}
+                              onChange={(e) => updateFilaCustodia(idx, 'baseUsd', parseMiles(e.target.value))}
+                              className="bg-white h-8 text-right"
+                              placeholder="0.00"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{formatMiles(fila.igvUsd)}</TableCell>
+                          <TableCell className="text-right font-mono">{formatMiles(fila.igvSoles)}</TableCell>
+                          <TableCell className="text-right font-mono font-bold">{formatMiles(fila.totalIgvSoles, 0)}</TableCell>
+                          <TableCell className="text-right font-mono">{formatRedondeo(fila.redondeo)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow className="font-bold">
+                        <TableCell colSpan={2}>TOTALES</TableCell>
+                        <TableCell className="text-right">{formatMiles(totalesCustodia.totalBaseUsd)}</TableCell>
+                        <TableCell className="text-right">{formatMiles(totalesCustodia.totalIgvUsd)}</TableCell>
+                        <TableCell className="text-right">—</TableCell>
+                        <TableCell className="text-right">{formatMiles(totalesCustodia.totalIgvSolesEntero, 0)}</TableCell>
+                        <TableCell className="text-right">{formatRedondeo(totalesCustodia.totalRedondeo)}</TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -617,7 +857,7 @@ export function PantallaPagoFacilND() {
         </div>
       </div>
 
-      {/* ═══ Modal Preview ═══ */}
+      {/* ═══ Modal Preview (sin cambios) ═══ */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-[900px] max-h-[90vh] overflow-y-auto flex flex-col">
           <DialogHeader>
