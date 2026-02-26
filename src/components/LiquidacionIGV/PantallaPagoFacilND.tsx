@@ -234,12 +234,15 @@ export function PantallaPagoFacilND() {
 
   // ─── Validación ──────────────────────────────────────
 
+  // Validar formato MM-YYYY para periodo tributario
+  const periodoTributarioRegex = /^(0[1-9]|1[0-2])-\d{4}$/;
+  const isPeriodoTributarioValid = periodoTributarioRegex.test(pagoFacilND.periodoTributario.trim());
+
   const camposRequeridos = {
     portafolio: !!portafolio,
     proveedores: portafolio === 'MILA' || proveedoresSeleccionados.length > 0,
-    periodo: portafolio === 'MILA' || !tipoFLAR || !!periodoSeleccionado || periodosDisponibles.length === 0,
     fechaPagoServicio: !!pagoFacilND.fechaPagoServicio,
-    periodoTributario: !!pagoFacilND.periodoTributario,
+    periodoTributario: isPeriodoTributarioValid,
     tcSunat: pagoFacilND.tcSunatVenta > 0,
     baseUsd: pagoFacilND.baseUsd > 0,
     facturaNro: !!pagoFacilND.facturaNro,
@@ -252,9 +255,8 @@ export function PantallaPagoFacilND() {
     const labels: Record<string, string> = {
       portafolio: 'Portafolio',
       proveedores: 'Proveedor(es)',
-      periodo: 'Periodo',
       fechaPagoServicio: 'Fecha Pago Servicio',
-      periodoTributario: 'Periodo Tributario',
+      periodoTributario: 'Periodo Tributario (formato MM-YYYY)',
       tcSunat: 'TC SUNAT',
       baseUsd: 'Total Factura US$',
       facturaNro: 'Factura Nro',
@@ -346,7 +348,7 @@ export function PantallaPagoFacilND() {
               {/* Periodo (solo FLAR con tipo seleccionado) */}
               {portafolio === 'FLAR' && tipoFLAR && (
                 <div className="space-y-2">
-                  <Label className="font-semibold">Periodo (YYYYMM)</Label>
+                  <Label className="font-semibold">Periodo (YYYYMM) <span className="text-muted-foreground font-normal text-xs">(opcional)</span></Label>
                   <Select value={periodoSeleccionado} onValueChange={handlePeriodoChange}>
                     <SelectTrigger>
                       <SelectValue placeholder={periodosDisponibles.length === 0 ? 'Sin periodos disponibles' : 'Seleccionar periodo'} />
@@ -387,14 +389,28 @@ export function PantallaPagoFacilND() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Periodo Tributario</Label>
+                <Label>Periodo Tributario *</Label>
                 <Input
                   value={pagoFacilND.periodoTributario}
                   onChange={(e) => updateField('periodoTributario', e.target.value)}
+                  onBlur={(e) => {
+                    // Autoconversión YYYYMM → MM-YYYY
+                    const val = e.target.value.trim();
+                    if (/^\d{6}$/.test(val)) {
+                      const yyyy = val.substring(0, 4);
+                      const mm = val.substring(4);
+                      if (parseInt(mm) >= 1 && parseInt(mm) <= 12) {
+                        updateField('periodoTributario', `${mm}-${yyyy}`);
+                      }
+                    }
+                  }}
                   readOnly={isReadonly('periodoTributario')}
-                  className={fieldBg('periodoTributario')}
+                  className={`${fieldBg('periodoTributario')} ${pagoFacilND.periodoTributario && !isPeriodoTributarioValid ? 'border-destructive' : ''}`}
                   placeholder="MM-YYYY"
                 />
+                {pagoFacilND.periodoTributario && !isPeriodoTributarioValid && (
+                  <p className="text-sm text-destructive">Formato MM-YYYY (ej. 10-2025)</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Código Tributo</Label>
