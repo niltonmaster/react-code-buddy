@@ -17,6 +17,7 @@ interface Props {
   isNoDomiciliado?: boolean;
   portafolio?: string;
   proveedores?: string[];
+  facturaNro?: string;
 }
 
 const fmt = (v: number) =>
@@ -28,6 +29,7 @@ export function TabDistribucionContable({
   isNoDomiciliado = false,
   portafolio = '',
   proveedores = [],
+  facturaNro = '',
 }: Props) {
   // ─── Caso IGV Domiciliado (D) — tabla simple ───
   if (!isNoDomiciliado) {
@@ -42,6 +44,7 @@ export function TabDistribucionContable({
       formData={formData}
       portafolio={portafolio}
       proveedores={proveedores}
+      facturaNro={facturaNro}
     />
   );
 }
@@ -137,10 +140,12 @@ function TabDistribucionNoDomiciliado({
   formData,
   portafolio,
   proveedores,
+  facturaNro = '',
 }: {
   formData: DevengadoFormData;
   portafolio: string;
   proveedores: string[];
+  facturaNro?: string;
 }) {
   const tc = formData.tipoCambio || 0;
   const baseUsd = formData.montoAfecto || 0;
@@ -181,6 +186,24 @@ function TabDistribucionNoDomiciliado({
     setCuentas(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
   };
 
+  // Estado editable para Persona y Factura (nuevas columnas)
+  const facturaDefault = facturaNro ? `OB${facturaNro}` : '';
+  const [personas, setPersonas] = useState(['12000', '12000', '12000', '12000']);
+  const [facturas, setFacturas] = useState([facturaDefault, facturaDefault, facturaDefault, facturaDefault]);
+
+  // Sincronizar factura si cambia facturaNro
+  useEffect(() => {
+    const val = facturaNro ? `OB${facturaNro}` : '';
+    setFacturas([val, val, val, val]);
+  }, [facturaNro]);
+
+  const updatePersona = (idx: number, value: string) => {
+    setPersonas(prev => prev.map((p, i) => i === idx ? value : p));
+  };
+  const updateFactura = (idx: number, value: string) => {
+    setFacturas(prev => prev.map((f, i) => i === idx ? value : f));
+  };
+
   const lineas: LineaContableEditable[] = [
     { ...cuentas[0], localDebe: 0, localHaber: baseSoles, usdDebe: 0, usdHaber: baseUsd, editable: true },
     { ...cuentas[1], localDebe: 0, localHaber: igvSoles, usdDebe: 0, usdHaber: igvUsd, editable: true },
@@ -204,6 +227,8 @@ function TabDistribucionNoDomiciliado({
                 <th className="w-8">#</th>
                 <th>Cuenta</th>
                 <th>Cuenta / Descripción</th>
+                <th>Persona</th>
+                <th>Factura</th>
                 <th colSpan={2} className="text-center border-l border-border">
                   L O C A L
                 </th>
@@ -212,6 +237,8 @@ function TabDistribucionNoDomiciliado({
                 </th>
               </tr>
               <tr className="bg-muted/30">
+                <th></th>
+                <th></th>
                 <th></th>
                 <th></th>
                 <th></th>
@@ -239,16 +266,30 @@ function TabDistribucionNoDomiciliado({
                       className="h-7 text-xs w-64"
                     />
                   </td>
+                  <td>
+                    <Input
+                      value={personas[i]}
+                      onChange={(e) => updatePersona(i, e.target.value)}
+                      className="h-7 text-xs font-mono w-16"
+                    />
+                  </td>
+                  <td>
+                    <Input
+                      value={facturas[i]}
+                      onChange={(e) => updateFactura(i, e.target.value)}
+                      className="h-7 text-xs font-mono w-32"
+                    />
+                  </td>
                   <td className="text-right font-mono border-l border-border">
                     {l.localDebe > 0 ? fmt(l.localDebe) : <span className="text-muted-foreground/50">.00</span>}
                   </td>
-                  <td className={`text-right font-mono ${l.localHaber > 0 ? 'text-red-600' : ''}`}>
+                  <td className={`text-right font-mono ${l.localHaber > 0 ? 'text-destructive' : ''}`}>
                     {l.localHaber > 0 ? fmt(l.localHaber) : <span className="text-muted-foreground/50">.00</span>}
                   </td>
                   <td className="text-right font-mono border-l border-border">
                     {l.usdDebe > 0 ? fmt(l.usdDebe) : <span className="text-muted-foreground/50">.00</span>}
                   </td>
-                  <td className={`text-right font-mono ${l.usdHaber > 0 ? 'text-red-600' : ''}`}>
+                  <td className={`text-right font-mono ${l.usdHaber > 0 ? 'text-destructive' : ''}`}>
                     {l.usdHaber > 0 ? fmt(l.usdHaber) : <span className="text-muted-foreground/50">.00</span>}
                   </td>
                 </tr>
@@ -256,14 +297,14 @@ function TabDistribucionNoDomiciliado({
             </tbody>
             <tfoot>
               <tr className="bg-muted/50 font-semibold">
-                <td colSpan={3} className="text-right">Total Voucher:</td>
+                <td colSpan={5} className="text-right">Total Voucher:</td>
                 <td className="text-right font-mono border-l border-border">{fmt(totalLocalDebe)}</td>
-                <td className="text-right font-mono text-red-600">{fmt(totalLocalHaber)}</td>
+                <td className="text-right font-mono text-destructive">{fmt(totalLocalHaber)}</td>
                 <td className="text-right font-mono border-l border-border">{fmt(totalUsdDebe)}</td>
-                <td className="text-right font-mono text-red-600">{fmt(totalUsdHaber)}</td>
+                <td className="text-right font-mono text-destructive">{fmt(totalUsdHaber)}</td>
               </tr>
               <tr className="text-xs text-muted-foreground">
-                <td colSpan={3} className="text-right">Diferencia:</td>
+                <td colSpan={5} className="text-right">Diferencia:</td>
                 <td colSpan={2} className="text-center font-mono border-l border-border">
                   {fmt(Math.abs(totalLocalDebe - totalLocalHaber))}
                 </td>
