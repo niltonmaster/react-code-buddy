@@ -15,7 +15,7 @@ export interface DevengadoRecord {
   documentoNro: string;
   moneda: string;
   monto: number;
-  estado: 'REVISADO' | 'REGISTRADO' | 'EN_PREPAGO' | 'PAGADO' | 'PAGADO_PARCIALMENTE' | 'ANULADO' | 'APROBADO';
+  estado: 'REGISTRADO' | 'EN_PREPAGO' | 'PAGADO' | 'PAGADO_PARCIALMENTE' | 'ANULADO' | 'APROBADO';
   fechaRegistro: string;
   fechaPago: string | null;
   observacion: string;
@@ -188,7 +188,7 @@ const INITIAL_DATA: DevengadosData = {
       documentoNro: "GE/0002499",
       moneda: "USD",
       monto: 118146.06,
-      estado: "REVISADO",
+      estado: "REGISTRADO",
       fechaRegistro: "2025-12-19",
       fechaPago: null,
       observacion: "IGV NO DOMICILIADO - PRINCIPAL",
@@ -211,7 +211,7 @@ const INITIAL_DATA: DevengadosData = {
       documentoNro: "GE/0002499-1",
       moneda: "USD",
       monto: 18022.28,
-      estado: "REVISADO",
+      estado: "REGISTRADO",
       fechaRegistro: "2025-12-19",
       fechaPago: null,
       observacion: "IGV NO DOMICILIADO - IGV",
@@ -533,7 +533,7 @@ export function saveDevengadoNDGroup(
   const asientoSeq = data.seq.toString().padStart(7, '0');
   const asiento = `${periodoPartes[0]}${periodoPartes[1]}-APF${asientoSeq}`;
   
-  // Registro principal (Base + IGV USD)
+  // Solo crear registro PRINCIPAL (el -1 se creará en Tesorería al generar prepago)
   const principalRecord: DevengadoRecord = {
     ...baseData,
     id: data.seq,
@@ -558,35 +558,10 @@ export function saveDevengadoNDGroup(
   };
   data.seq += 1;
   
-  // Registro IGV (-1)
-  const igvRecord: DevengadoRecord = {
-    ...baseData,
-    id: data.seq,
-    periodo: normalizedPeriodo,
-    documentoNro: `${groupId}-1`,
-    moneda: 'USD',
-    monto: montoIgvUSD,
-    tipoDevengado: 'NO_DOMICILIADO',
-    groupId,
-    rol: 'IGV',
-    montoBaseUSD,
-    montoIgvUSD,
-    totalObligacionUSD: totalUSD,
-    igvSoles,
-    unidadNegocio,
-    entidad,
-    tipoDocumento,
-    tipoServicio,
-    tipoPago,
-    fechaRegistro: today,
-    asiento,
-  };
-  data.seq += 1;
-  
-  data.devengados.push(principalRecord, igvRecord);
+  data.devengados.push(principalRecord);
   saveData(data);
   
-  return { success: true, records: [principalRecord, igvRecord] };
+  return { success: true, records: [principalRecord] };
 }
 
 // B) Actualizar grupo completo de devengados IGV ND (padre + hijo)

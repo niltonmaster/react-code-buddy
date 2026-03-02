@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { getDevengadosByUnidad, getDevengadoNDGroup, updateDevengadoStatus, DevengadoRecord } from '@/lib/devengadosStorage';
 
-const ESTADOS = ['TODOS', 'REVISADO', 'APROBADO', 'REGISTRADO', 'EN_PREPAGO', 'PAGADO', 'PAGADO_PARCIALMENTE', 'ANULADO'] as const;
+const ESTADOS = ['TODOS', 'REGISTRADO', 'APROBADO', 'EN_PREPAGO', 'PAGADO', 'PAGADO_PARCIALMENTE', 'ANULADO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
 
 // Relación Entidad → Unidades de Negocio
@@ -53,9 +53,8 @@ function formatFecha(fecha: string | null): string {
 
 function getEstadoBadgeVariant(estado: DevengadoRecord['estado']): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (estado) {
-    case 'REVISADO': return 'secondary';
-    case 'APROBADO': return 'default';
     case 'REGISTRADO': return 'secondary';
+    case 'APROBADO': return 'default';
     case 'EN_PREPAGO': return 'default';
     case 'PAGADO': return 'outline';
     case 'PAGADO_PARCIALMENTE': return 'default';
@@ -538,10 +537,10 @@ export default function DevengadosIGVListPage() {
                             <DropdownMenuItem onClick={() => handleVerEditar(dev)}
                               disabled={dev.estado === 'APROBADO' || dev.estado === 'PAGADO_PARCIALMENTE'}
                             >
-                              {dev.estado === 'REVISADO' ? 'Ver / Editar' : 'Ver detalle'}
+                              {dev.estado === 'REGISTRADO' ? 'Ver / Editar' : 'Ver detalle'}
                             </DropdownMenuItem>
-                            {/* Aprobar: solo visible en REVISADO */}
-                            {dev.estado === 'REVISADO' && !(dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') && (
+                            {/* Aprobar: solo visible en REGISTRADO */}
+                            {dev.estado === 'REGISTRADO' && !(dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') && (
                               <DropdownMenuItem onClick={() => handleAprobar(dev)}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Aprobar
