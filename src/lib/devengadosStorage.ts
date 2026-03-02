@@ -38,6 +38,8 @@ export interface DevengadoRecord {
   igvSoles?: number;
   // Asiento contable AP
   asiento?: string | null;    // Formato: YYYYMM-APF######
+  // Snapshot completo del formulario para restaurar al editar
+  formSnapshot?: Record<string, any>;
 }
 
 interface DevengadosData {
@@ -507,7 +509,8 @@ export function saveDevengadoNDGroup(
     tipoServicio?: string;
     tipoPago?: string;
     unidadNegocio?: string;
-  }
+  },
+  formSnapshot?: Record<string, any>
 ): { success: boolean; error?: string; records?: DevengadoRecord[] } {
   const data = getData();
   const normalizedPeriodo = normalizePeriodo(baseData.periodo);
@@ -555,6 +558,7 @@ export function saveDevengadoNDGroup(
     tipoPago,
     fechaRegistro: today,
     asiento,
+    formSnapshot: formSnapshot || undefined,
   };
   data.seq += 1;
   
@@ -580,6 +584,7 @@ export function updateDevengadoNDGroup(
     montoBaseUSD?: number;
     montoIgvUSD?: number;
     igvSoles?: number;
+    formSnapshot?: Record<string, any>;
   }
 ): { success: boolean; error?: string; records?: DevengadoRecord[] } {
   const data = getData();
@@ -609,6 +614,7 @@ export function updateDevengadoNDGroup(
     if (updateData.tipoServicio !== undefined) record.tipoServicio = updateData.tipoServicio;
     if (updateData.tipoPago !== undefined) record.tipoPago = updateData.tipoPago;
     if (updateData.unidadNegocio !== undefined) record.unidadNegocio = updateData.unidadNegocio;
+    if (updateData.formSnapshot && isPrincipal) record.formSnapshot = updateData.formSnapshot;
     
     // Actualizar montos
     if (updateData.montoBaseUSD !== undefined) record.montoBaseUSD = updateData.montoBaseUSD;

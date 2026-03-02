@@ -409,6 +409,13 @@ export function DevengadoIGV() {
         // Guardar el tipo original para preservarlo al editar
         setOriginalTipoDevengado(existing.tipoDevengado || 'DOMICILIADO');
 
+        // Si hay snapshot guardado, restaurar directamente
+        if (existing.formSnapshot) {
+          setFormData(existing.formSnapshot as any);
+          return;
+        }
+
+        // Fallback: reconstruir desde campos del registro (registros antiguos sin snapshot)
         const [year, month] = existing.periodo.split('-');
         const fechaDefault = getFechaFormatoInput(`${month}-${year}`);
 
@@ -416,21 +423,20 @@ export function DevengadoIGV() {
 
         setFormData(prev => ({
           ...prev,
-          // Usar valores EXACTOS guardados, sin defaults que sobreescriban
           proveedor: existing.proveedor || '',
           ruc: existing.ruc || '',
-          entidad: existing.entidad ?? '', // Usar valor guardado exacto, incluso si está vacío
-          tipoDocumento: existing.tipoDocumento ?? '', // Usar valor guardado exacto
+          entidad: existing.entidad ?? '',
+          tipoDocumento: existing.tipoDocumento ?? '',
           pagarA: existing.proveedor || '',
-          documentoNumero: existing.documentoNro || '', // Usar valor guardado exacto
+          documentoNumero: existing.documentoNro || '',
           fechaRegistro: existing.fechaRegistro.split('-').reverse().join('/'),
           fechaEmision: fechaDefault,
           fechaRecepcion: fechaDefault,
           fechaVencimiento: fechaDefault,
           fechaProgramacionPago: fechaDefault,
-          unidadNegocio: existing.unidadNegocio ?? '', // Usar valor guardado exacto
-          tipoServicio: existing.tipoServicio ?? '', // Usar valor guardado exacto
-          tipoPago: existing.tipoPago ?? '', // Usar valor guardado exacto
+          unidadNegocio: existing.unidadNegocio ?? '',
+          tipoServicio: existing.tipoServicio ?? '',
+          tipoPago: existing.tipoPago ?? '',
           glosa: existing.observacion || '',
           montoAfecto: isExistingND ? (existing.montoBaseUSD || existing.monto) : existing.monto,
           igv: isExistingND ? (existing.montoIgvUSD || 0) : 0,
@@ -642,7 +648,9 @@ export function DevengadoIGV() {
           tipoServicio: formData.tipoServicio || undefined,
           tipoPago: formData.tipoPago || undefined,
           unidadNegocio: formData.unidadNegocio || undefined,
-        }
+        },
+        // Guardar snapshot completo del formulario
+        { ...formData }
       );
 
       if (result.success) {
@@ -672,6 +680,7 @@ export function DevengadoIGV() {
           montoBaseUSD: formData.montoAfecto || 0,
           montoIgvUSD: formData.igv || 0,
           igvSoles: formData.totalObligacion || 0,
+          formSnapshot: { ...formData },
         });
 
         if (result.success) {
@@ -711,7 +720,9 @@ export function DevengadoIGV() {
       unidadNegocio: formData.unidadNegocio || (esND ? PARAMS_DEVENGADO_IGV_ND.unidadNegocioNombre : PARAMS_DEVENGADO_IGV.unidadNegocioNombre),
       tipoServicio: formData.tipoServicio || (esND ? PARAMS_DEVENGADO_IGV_ND.tipoServicio : PARAMS_DEVENGADO_IGV.tipoServicioNombre),
       tipoPago: formData.tipoPago || 'Débito en cuenta',
-      tipoDocumento: formData.tipoDocumento || (esND ? PARAMS_DEVENGADO_IGV_ND.tipoDocumento : PARAMS_DEVENGADO_IGV.tipoDocumento)
+      tipoDocumento: formData.tipoDocumento || (esND ? PARAMS_DEVENGADO_IGV_ND.tipoDocumento : PARAMS_DEVENGADO_IGV.tipoDocumento),
+      // Snapshot completo del formulario
+      formSnapshot: { ...formData },
     };
 
     const result = saveDevengado(record);
