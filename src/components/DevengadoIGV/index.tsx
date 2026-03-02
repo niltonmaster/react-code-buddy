@@ -78,15 +78,17 @@ export function DevengadoIGV() {
   const fromPagoFacilND = state?.fromPagoFacilND ?? false;
   const fromLista = state?.fromLista ?? false;
   const pagoFacilNDData = state?.pagoFacilNDData;
-  const portafolioND = state?.portafolio ?? '';
-  const proveedoresND = state?.proveedoresSeleccionados ?? [];
+  const [portafolioND, setPortafolioND] = useState(state?.portafolio ?? '');
+  const [proveedoresND, setProveedoresND] = useState<string[]>(state?.proveedoresSeleccionados ?? []);
   const tipoDevengadoLista = state?.tipoDevengadoLista;
   const copyMode = state?.copyMode ?? false;
   const copyDataND = state?.copyDataND;
   const copyData = state?.copyData;
 
-  // Determinar si es modo No Domiciliado (desde Pago Fácil ND o desde lista ND)
-  const isNoDomiciliado = fromPagoFacilND || tipoDevengadoLista === 'NO_DOMICILIADO';
+  const [originalTipoDevengado, setOriginalTipoDevengado] = useState<'DOMICILIADO' | 'NO_DOMICILIADO' | null>(null);
+
+  // Determinar si es modo No Domiciliado (desde Pago Fácil ND, lista ND, o registro cargado)
+  const isNoDomiciliado = fromPagoFacilND || tipoDevengadoLista === 'NO_DOMICILIADO' || originalTipoDevengado === 'NO_DOMICILIADO';
 
   // Determinar si viene de Pago Fácil (D o ND) - campos deben estar deshabilitados
   // IMPORTANTE: copyMode === true → NO es Pago Fácil, es copia manual editable
@@ -135,7 +137,7 @@ export function DevengadoIGV() {
   const [currentPeriodo, setCurrentPeriodo] = useState(periodoTributario);
   const [currentMonto, setCurrentMonto] = useState(importeIGV);
   const [existingId, setExistingId] = useState<number | null>(editId);
-  const [originalTipoDevengado, setOriginalTipoDevengado] = useState<'DOMICILIADO' | 'NO_DOMICILIADO' | null>(null);
+  // originalTipoDevengado declared above (before isNoDomiciliado)
 
   const fechaInputDefault = getFechaFormatoInput(currentPeriodo);
   const [mes] = currentPeriodo.split('-');
@@ -412,6 +414,10 @@ export function DevengadoIGV() {
         // Si hay snapshot guardado, restaurar directamente
         if (existing.formSnapshot) {
           setFormData(existing.formSnapshot as any);
+          // Restaurar contexto ND (portafolio/proveedores) del snapshot
+          const snap = existing.formSnapshot as Record<string, any>;
+          if (snap._portafolio) setPortafolioND(snap._portafolio);
+          if (snap._proveedoresSeleccionados) setProveedoresND(snap._proveedoresSeleccionados);
           return;
         }
 
@@ -649,8 +655,8 @@ export function DevengadoIGV() {
           tipoPago: formData.tipoPago || undefined,
           unidadNegocio: formData.unidadNegocio || undefined,
         },
-        // Guardar snapshot completo del formulario
-        { ...formData }
+        // Guardar snapshot completo del formulario + contexto ND
+        { ...formData, _portafolio: portafolioND, _proveedoresSeleccionados: proveedoresND }
       );
 
       if (result.success) {
@@ -680,7 +686,7 @@ export function DevengadoIGV() {
           montoBaseUSD: formData.montoAfecto || 0,
           montoIgvUSD: formData.igv || 0,
           igvSoles: formData.totalObligacion || 0,
-          formSnapshot: { ...formData },
+          formSnapshot: { ...formData, _portafolio: portafolioND, _proveedoresSeleccionados: proveedoresND },
         });
 
         if (result.success) {
@@ -722,7 +728,7 @@ export function DevengadoIGV() {
       tipoPago: formData.tipoPago || 'Débito en cuenta',
       tipoDocumento: formData.tipoDocumento || (esND ? PARAMS_DEVENGADO_IGV_ND.tipoDocumento : PARAMS_DEVENGADO_IGV.tipoDocumento),
       // Snapshot completo del formulario
-      formSnapshot: { ...formData },
+      formSnapshot: { ...formData, _portafolio: portafolioND, _proveedoresSeleccionados: proveedoresND },
     };
 
     const result = saveDevengado(record);
@@ -764,7 +770,7 @@ export function DevengadoIGV() {
           </h1>
           <p className="text-sm opacity-80">
             Periodo: {currentPeriodo} | RUC: 20421413216
-            {(isNoDomiciliado || originalTipoDevengado === 'NO_DOMICILIADO') && !copyMode && ' | Origen: Pago Fácil IGV ND (1041)'}
+            {isNoDomiciliado && !copyMode && ' | Origen: Pago Fácil IGV ND (1041)'}
             {copyMode && ' | Origen: Copia desde registro existente'}
           </p>
         </div>
