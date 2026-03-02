@@ -15,7 +15,7 @@ export interface DevengadoRecord {
   documentoNro: string;
   moneda: string;
   monto: number;
-  estado: 'REGISTRADO' | 'EN_PREPAGO' | 'PAGADO' | 'ANULADO';
+  estado: 'REVISADO' | 'REGISTRADO' | 'EN_PREPAGO' | 'PAGADO' | 'PAGADO_PARCIALMENTE' | 'ANULADO' | 'APROBADO';
   fechaRegistro: string;
   fechaPago: string | null;
   observacion: string;
@@ -188,7 +188,7 @@ const INITIAL_DATA: DevengadosData = {
       documentoNro: "GE/0002499",
       moneda: "USD",
       monto: 118146.06,
-      estado: "REGISTRADO",
+      estado: "REVISADO",
       fechaRegistro: "2025-12-19",
       fechaPago: null,
       observacion: "IGV NO DOMICILIADO - PRINCIPAL",
@@ -211,7 +211,7 @@ const INITIAL_DATA: DevengadosData = {
       documentoNro: "GE/0002499-1",
       moneda: "USD",
       monto: 18022.28,
-      estado: "REGISTRADO",
+      estado: "REVISADO",
       fechaRegistro: "2025-12-19",
       fechaPago: null,
       observacion: "IGV NO DOMICILIADO - IGV",
