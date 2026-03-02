@@ -17,7 +17,7 @@ import { getDevengadoById, saveDevengado } from '@/lib/devengadosStorage';
 
 const ESTADOS_PAGO = ['TODOS', 'GENERADO', 'PAGADO', 'ANULADO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
-const UNIDADES_NEGOCIO = ['FCR-DL 19990', 'FCR-DL 20530', 'ONP-PENSIONES'] as const;
+const UNIDADES_NEGOCIO = ['FCR-DL 19990', 'FCR-DL 20530', 'FCR-MACROFONDO', 'ONP-PENSIONES'] as const;
 const PAGE_SIZES = [10, 20, 50] as const;
 
 function formatMonto(monto: number): string {
