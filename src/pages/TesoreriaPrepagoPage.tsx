@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Search, ArrowLeft, Edit, CreditCard, ChevronLeft, ChevronRight, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDevengados, saveDevengado, DevengadoRecord, CuentaBancaria, saveDevengadoNDGroup } from '@/lib/devengadosStorage';
@@ -107,9 +106,6 @@ export default function TesoreriaPrepagoPage() {
   const [filterPeriodo, setFilterPeriodo] = useState('');
   const [filterEstado, setFilterEstado] = useState<string>('REGISTRADO');
   const [filterProveedor, setFilterProveedor] = useState('');
-  const [filterFechaDesde, setFilterFechaDesde] = useState('');
-  const [filterFechaHasta, setFilterFechaHasta] = useState('');
-  
   // Filtros aplicados
   const [appliedFilters, setAppliedFilters] = useState({
     entidad: 'FCR',
@@ -117,21 +113,11 @@ export default function TesoreriaPrepagoPage() {
     periodo: '',
     estado: 'REGISTRADO',
     proveedor: '',
-    fechaDesde: '',
-    fechaHasta: '',
   });
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
-  
-  // Selección múltiple para Cambio Masivo
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  
-  // Modal Cambio Masivo
-  const [cambioMasivoOpen, setCambioMasivoOpen] = useState(false);
-  const [masivoTipoPago, setMasivoTipoPago] = useState('');
-  const [masivoCuenta, setMasivoCuenta] = useState<CuentaBancaria | null>(null);
   
   // Modal Modificar (individual)
   const [modalOpen, setModalOpen] = useState(false);
@@ -186,10 +172,6 @@ export default function TesoreriaPrepagoPage() {
 
         if (appliedFilters.proveedor && !d.proveedor.toLowerCase().includes(appliedFilters.proveedor.toLowerCase())) return false;
         
-        // Filtro Fecha Prox Pago (usa fechaRegistro como proxy)
-        if (appliedFilters.fechaDesde && d.fechaRegistro < appliedFilters.fechaDesde) return false;
-        if (appliedFilters.fechaHasta && d.fechaRegistro > appliedFilters.fechaHasta) return false;
-        
         return true;
       })
       .sort((a, b) => {
@@ -213,11 +195,8 @@ export default function TesoreriaPrepagoPage() {
       periodo: filterPeriodo,
       estado: filterEstado,
       proveedor: filterProveedor,
-      fechaDesde: filterFechaDesde,
-      fechaHasta: filterFechaHasta,
     });
     setCurrentPage(1);
-    setSelectedIds(new Set());
     toast.info('Filtros aplicados');
   };
 
@@ -228,19 +207,14 @@ export default function TesoreriaPrepagoPage() {
       periodo: '',
       estado: 'REGISTRADO',
       proveedor: '',
-      fechaDesde: '',
-      fechaHasta: '',
     };
     setFilterEntidad(defaults.entidad);
     setFilterUnidadNegocio(defaults.unidadNegocio);
     setFilterPeriodo(defaults.periodo);
     setFilterEstado(defaults.estado);
     setFilterProveedor(defaults.proveedor);
-    setFilterFechaDesde(defaults.fechaDesde);
-    setFilterFechaHasta(defaults.fechaHasta);
     setAppliedFilters(defaults);
     setCurrentPage(1);
-    setSelectedIds(new Set());
     toast.info('Filtros limpiados');
   };
 
@@ -251,75 +225,6 @@ export default function TesoreriaPrepagoPage() {
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  };
-
-  // === Selección múltiple ===
-  const toggleSelect = (id: number) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    const registrados = paginatedDevengados.filter(d => d.estado === 'REGISTRADO');
-    const allSelected = registrados.every(d => selectedIds.has(d.id));
-    if (allSelected) {
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        registrados.forEach(d => next.delete(d.id));
-        return next;
-      });
-    } else {
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        registrados.forEach(d => next.add(d.id));
-        return next;
-      });
-    }
-  };
-
-  // === Cambio Masivo ===
-  const handleOpenCambioMasivo = () => {
-    if (selectedIds.size === 0) {
-      toast.error('Seleccione al menos un registro');
-      return;
-    }
-    setMasivoTipoPago('');
-    setMasivoCuenta(null);
-    setCambioMasivoOpen(true);
-  };
-
-  const handleAplicarCambioMasivo = () => {
-    if (!masivoTipoPago) {
-      toast.error('Seleccione un Tipo de Pago');
-      return;
-    }
-    const requiresCuenta = (CUENTAS_BANCARIAS[masivoTipoPago] || []).length > 0;
-    if (requiresCuenta && !masivoCuenta) {
-      toast.error('Seleccione una Cuenta Bancaria');
-      return;
-    }
-
-    let updated = 0;
-    selectedIds.forEach(id => {
-      const dev = devengados.find(d => d.id === id);
-      if (dev && dev.estado === 'REGISTRADO') {
-        saveDevengado({
-          ...dev,
-          tipoPago: masivoTipoPago,
-          cuentaBancaria: masivoCuenta || undefined,
-        });
-        updated++;
-      }
-    });
-
-    toast.success(`${updated} registro(s) actualizado(s)`);
-    loadData();
-    setSelectedIds(new Set());
-    setCambioMasivoOpen(false);
   };
 
   // === Modal Modificar individual ===
@@ -489,7 +394,6 @@ export default function TesoreriaPrepagoPage() {
   };
 
   const cuentasDisponibles = CUENTAS_BANCARIAS[modalTipoPago] || [];
-  const cuentasMasivo = CUENTAS_BANCARIAS[masivoTipoPago] || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -548,14 +452,8 @@ export default function TesoreriaPrepagoPage() {
                 <Label className="text-sm font-medium mb-1 block">Proveedor</Label>
                 <Input placeholder="Buscar proveedor..." value={filterProveedor} onChange={(e) => setFilterProveedor(e.target.value)} />
               </div>
-              <div>
-                <Label className="text-sm font-medium mb-1 block">Fecha Prox Pago Desde</Label>
-                <Input type="date" value={filterFechaDesde} onChange={(e) => setFilterFechaDesde(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-1 block">Fecha Prox Pago Hasta</Label>
-                <Input type="date" value={filterFechaHasta} onChange={(e) => setFilterFechaHasta(e.target.value)} />
-              </div>
+              <div></div>
+              <div></div>
               <div className="flex items-end gap-2">
                 <Button variant="default" onClick={handleBuscar}>
                   <Search className="mr-2 h-4 w-4" /> Buscar
@@ -570,20 +468,8 @@ export default function TesoreriaPrepagoPage() {
             <span className="font-medium text-foreground">{appliedFilters.unidadNegocio}</span> · Periodo{' '}
             <span className="font-medium text-foreground">{appliedFilters.periodo ? normalizePeriodo(appliedFilters.periodo) : 'Todos'}</span> · Estado{' '}
             <span className="font-medium text-foreground">{appliedFilters.estado}</span>
-            {appliedFilters.fechaDesde && <> · Desde <span className="font-medium text-foreground">{formatFecha(appliedFilters.fechaDesde)}</span></>}
-            {appliedFilters.fechaHasta && <> · Hasta <span className="font-medium text-foreground">{formatFecha(appliedFilters.fechaHasta)}</span></>}
           </div>
         </Card>
-
-        {/* Toolbar: Cambio Masivo */}
-        {selectedIds.size > 0 && (
-          <div className="mb-4 flex items-center gap-3">
-            <Badge variant="secondary">{selectedIds.size} seleccionado(s)</Badge>
-            <Button variant="outline" size="sm" onClick={handleOpenCambioMasivo}>
-              <Edit className="h-4 w-4 mr-1" /> Cambio Masivo
-            </Button>
-          </div>
-        )}
 
         {/* Tabla */}
         <Card className="overflow-hidden">
@@ -591,12 +477,6 @@ export default function TesoreriaPrepagoPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={paginatedDevengados.filter(d => d.estado === 'REGISTRADO').length > 0 && paginatedDevengados.filter(d => d.estado === 'REGISTRADO').every(d => selectedIds.has(d.id))}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
                   <TableHead className="font-semibold w-12">N°</TableHead>
                   <TableHead className="font-semibold">Periodo</TableHead>
                   <TableHead className="font-semibold">Documento</TableHead>
@@ -616,20 +496,13 @@ export default function TesoreriaPrepagoPage() {
               <TableBody>
                 {paginatedDevengados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isNDMode ? 13 : 11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={isNDMode ? 11 : 9} className="text-center py-8 text-muted-foreground">
                       No hay devengados para los filtros seleccionados
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginatedDevengados.map((dev, index) => (
-                    <TableRow key={dev.id} className={selectedIds.has(dev.id) ? 'bg-primary/5' : ''}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(dev.id)}
-                          onCheckedChange={() => toggleSelect(dev.id)}
-                          disabled={dev.estado !== 'REGISTRADO'}
-                        />
-                      </TableCell>
+                    <TableRow key={dev.id}>
                       <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
                       <TableCell className="font-medium">{dev.periodo}</TableCell>
                       <TableCell className="font-mono text-sm">{dev.documentoNro || '-'}</TableCell>
@@ -765,45 +638,6 @@ export default function TesoreriaPrepagoPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ========== Modal Cambio Masivo ========== */}
-      <Dialog open={cambioMasivoOpen} onOpenChange={setCambioMasivoOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cambio Masivo</DialogTitle>
-            <DialogDescription>
-              Aplicar Tipo de Pago y Cuenta a {selectedIds.size} registro(s) seleccionado(s)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Tipo de Pago</Label>
-              <Select value={masivoTipoPago} onValueChange={(v) => { setMasivoTipoPago(v); setMasivoCuenta(null); }}>
-                <SelectTrigger><SelectValue placeholder="Seleccione tipo de pago" /></SelectTrigger>
-                <SelectContent>
-                  {TIPOS_PAGO.map(tipo => <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {cuentasMasivo.length > 0 && (
-              <div className="space-y-2">
-                <Label>Cuenta Bancaria</Label>
-                <Select value={masivoCuenta?.id || ''} onValueChange={(id) => setMasivoCuenta(cuentasMasivo.find(c => c.id === id) || null)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccione cuenta" /></SelectTrigger>
-                  <SelectContent>
-                    {cuentasMasivo.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.banco} - {c.numeroMasked} ({c.moneda})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCambioMasivoOpen(false)}>Cancelar</Button>
-            <Button onClick={handleAplicarCambioMasivo}>Aplicar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* ========== Modal Confirmar Pre-Pago ND ========== */}
       <Dialog open={confirmarPrepagoOpen} onOpenChange={setConfirmarPrepagoOpen}>
