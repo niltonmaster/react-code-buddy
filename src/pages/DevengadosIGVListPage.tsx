@@ -17,11 +17,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Plus, Search, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Copy, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { getDevengadosByUnidad, getDevengadoNDGroup, updateDevengadoStatus, DevengadoRecord } from '@/lib/devengadosStorage';
 
-const ESTADOS = ['TODOS', 'REGISTRADO', 'EN_PREPAGO', 'PAGADO', 'ANULADO'] as const;
+const ESTADOS = ['TODOS', 'REVISADO', 'APROBADO', 'REGISTRADO', 'EN_PREPAGO', 'PAGADO', 'PAGADO_PARCIALMENTE', 'ANULADO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
 
 // Relación Entidad → Unidades de Negocio
@@ -45,9 +53,12 @@ function formatFecha(fecha: string | null): string {
 
 function getEstadoBadgeVariant(estado: DevengadoRecord['estado']): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (estado) {
+    case 'REVISADO': return 'secondary';
+    case 'APROBADO': return 'default';
     case 'REGISTRADO': return 'secondary';
     case 'EN_PREPAGO': return 'default';
     case 'PAGADO': return 'outline';
+    case 'PAGADO_PARCIALMENTE': return 'default';
     case 'ANULADO': return 'destructive';
     default: return 'secondary';
   }
@@ -83,6 +94,14 @@ export default function DevengadosIGVListPage() {
   // Modal de confirmación para anular
   const [anularDialogOpen, setAnularDialogOpen] = useState(false);
   const [devengadoToAnular, setDevengadoToAnular] = useState<DevengadoRecord | null>(null);
+
+  // Modal Voucher AP (solo para ND al aprobar)
+  const [voucherAPOpen, setVoucherAPOpen] = useState(false);
+  const [voucherAPRecord, setVoucherAPRecord] = useState<DevengadoRecord | null>(null);
+
+  // Modal confirmación aprobar
+  const [aprobarDialogOpen, setAprobarDialogOpen] = useState(false);
+  const [devengadoToAprobar, setDevengadoToAprobar] = useState<DevengadoRecord | null>(null);
 
   useEffect(() => {
     // Carga inicial con filtros aplicados por defecto
@@ -277,6 +296,41 @@ export default function DevengadosIGVListPage() {
   const handleAnular = (dev: DevengadoRecord) => {
     setDevengadoToAnular(dev);
     setAnularDialogOpen(true);
+  };
+
+  const handleAprobar = (dev: DevengadoRecord) => {
+    setDevengadoToAprobar(dev);
+    setAprobarDialogOpen(true);
+  };
+
+  const handleConfirmAprobar = () => {
+    if (!devengadoToAprobar) return;
+    const dev = devengadoToAprobar;
+    const isND = dev.tipoDevengado === 'NO_DOMICILIADO';
+    const newEstado = isND ? 'PAGADO_PARCIALMENTE' : 'APROBADO';
+    
+    // Para ND: aprobar también el registro hijo del grupo
+    if (isND && dev.groupId) {
+      const grupo = getDevengadoNDGroup(dev.groupId);
+      grupo.forEach(g => {
+        updateDevengadoStatus(g.id, newEstado as DevengadoRecord['estado']);
+      });
+    } else {
+      updateDevengadoStatus(dev.id, newEstado as DevengadoRecord['estado']);
+    }
+    
+    setDevengados(getDevengadosByUnidad(appliedFilters.unidadNegocio));
+    setAprobarDialogOpen(false);
+    
+    if (isND) {
+      // Mostrar Voucher AP para ND
+      setVoucherAPRecord(dev);
+      setVoucherAPOpen(true);
+      toast.success(`Devengado aprobado → ${newEstado}`);
+    } else {
+      toast.success(`Devengado aprobado → APROBADO`);
+    }
+    setDevengadoToAprobar(null);
   };
 
   const handleIrPrePago = (id: number) => {
@@ -481,9 +535,18 @@ export default function DevengadosIGVListPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => handleVerEditar(dev)}>
-                              Ver / Editar
+                            <DropdownMenuItem onClick={() => handleVerEditar(dev)}
+                              disabled={dev.estado === 'APROBADO' || dev.estado === 'PAGADO_PARCIALMENTE'}
+                            >
+                              {dev.estado === 'REVISADO' ? 'Ver / Editar' : 'Ver detalle'}
                             </DropdownMenuItem>
+                            {/* Aprobar: solo visible en REVISADO */}
+                            {dev.estado === 'REVISADO' && !(dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') && (
+                              <DropdownMenuItem onClick={() => handleAprobar(dev)}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Aprobar
+                              </DropdownMenuItem>
+                            )}
                             {/* F) Copiar solo en padre ND, ocultar en hijo */}
                             {!(dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') && (
                               <DropdownMenuItem onClick={() => handleCopiar(dev)}>
@@ -493,8 +556,8 @@ export default function DevengadosIGVListPage() {
                             )}
                             <DropdownMenuItem 
                               onClick={() => handleIrPrePago(dev.id)}
-                              disabled={dev.estado !== 'REGISTRADO'}
-                              className={dev.estado !== 'REGISTRADO' ? 'opacity-50 cursor-not-allowed' : ''}
+                              disabled={dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE'}
+                              className={(dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE') ? 'opacity-50 cursor-not-allowed' : ''}
                             >
                               Ir a Pre-Pago
                             </DropdownMenuItem>
@@ -609,6 +672,123 @@ export default function DevengadosIGVListPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de confirmación para aprobar */}
+      <AlertDialog open={aprobarDialogOpen} onOpenChange={setAprobarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar aprobación</AlertDialogTitle>
+            <AlertDialogDescription>
+              {devengadoToAprobar?.tipoDevengado === 'NO_DOMICILIADO'
+                ? `¿Aprobar el devengado ND del periodo ${devengadoToAprobar?.periodo}? El estado cambiará a PAGADO PARCIALMENTE y se generará el Voucher AP.`
+                : `¿Aprobar el devengado del periodo ${devengadoToAprobar?.periodo}? El estado cambiará a APROBADO y ya no podrá modificarse.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAprobar} className="bg-primary">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Aprobar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal Voucher AP (solo IGV ND) */}
+      <Dialog open={voucherAPOpen} onOpenChange={setVoucherAPOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Voucher AP – Asiento Contable</DialogTitle>
+            <DialogDescription>
+              Asiento: {voucherAPRecord?.asiento || '—'} | Periodo: {voucherAPRecord?.periodo} | Proveedor: {voucherAPRecord?.proveedor}
+            </DialogDescription>
+          </DialogHeader>
+          {voucherAPRecord && (
+            <VoucherAPTable record={voucherAPRecord} />
+          )}
+          <DialogFooter>
+            <Button onClick={() => setVoucherAPOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════
+// Voucher AP Table (inline, reutiliza datos del record ND)
+// ════════════════════════════════════════════════
+const fmtMonto = (v: number) =>
+  v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function VoucherAPTable({ record }: { record: DevengadoRecord }) {
+  const baseUsd = record.montoBaseUSD || 0;
+  const igvUsd = record.montoIgvUSD || 0;
+  const igvSoles = record.igvSoles || 0;
+  // Estimar TC a partir de igvSoles / igvUsd
+  const tc = igvUsd > 0 ? igvSoles / igvUsd : 0;
+  const baseSoles = Math.round(baseUsd * tc * 100) / 100;
+
+  const lineas = [
+    { num: 1, cuenta: 'Variable', desc: `Comisión ${record.proveedor}`, localDebe: 0, localHaber: baseSoles, usdDebe: 0, usdHaber: baseUsd },
+    { num: 2, cuenta: '4011201', desc: 'IGV No Domiciliados', localDebe: 0, localHaber: igvSoles, usdDebe: 0, usdHaber: igvUsd },
+    { num: 3, cuenta: 'Variable', desc: `Gasto Comisión ${record.proveedor}`, localDebe: baseSoles, localHaber: 0, usdDebe: baseUsd, usdHaber: 0 },
+    { num: 4, cuenta: '6411101', desc: 'Gasto IGV No Domiciliados', localDebe: igvSoles, localHaber: 0, usdDebe: igvUsd, usdHaber: 0 },
+  ];
+
+  const totalLocalDebe = lineas.reduce((s, l) => s + l.localDebe, 0);
+  const totalLocalHaber = lineas.reduce((s, l) => s + l.localHaber, 0);
+  const totalUsdDebe = lineas.reduce((s, l) => s + l.usdDebe, 0);
+  const totalUsdHaber = lineas.reduce((s, l) => s + l.usdHaber, 0);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-muted/50">
+            <th className="border p-2 w-8">#</th>
+            <th className="border p-2">Cuenta</th>
+            <th className="border p-2">Descripción</th>
+            <th className="border p-2 text-right" colSpan={2}>LOCAL</th>
+            <th className="border p-2 text-right" colSpan={2}>DÓLARES</th>
+          </tr>
+          <tr className="bg-muted/30 text-[10px]">
+            <th className="border p-1"></th>
+            <th className="border p-1"></th>
+            <th className="border p-1"></th>
+            <th className="border p-1 text-right">Debe</th>
+            <th className="border p-1 text-right">Haber</th>
+            <th className="border p-1 text-right">Debe</th>
+            <th className="border p-1 text-right">Haber</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lineas.map(l => (
+            <tr key={l.num}>
+              <td className="border p-2 text-center font-mono">{l.num}</td>
+              <td className="border p-2 font-mono">{l.cuenta}</td>
+              <td className="border p-2">{l.desc}</td>
+              <td className="border p-2 text-right font-mono">{l.localDebe > 0 ? fmtMonto(l.localDebe) : '-'}</td>
+              <td className="border p-2 text-right font-mono text-destructive">{l.localHaber > 0 ? fmtMonto(l.localHaber) : '-'}</td>
+              <td className="border p-2 text-right font-mono">{l.usdDebe > 0 ? fmtMonto(l.usdDebe) : '-'}</td>
+              <td className="border p-2 text-right font-mono text-destructive">{l.usdHaber > 0 ? fmtMonto(l.usdHaber) : '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="bg-muted/50 font-semibold">
+            <td colSpan={3} className="border p-2 text-right">Total Voucher:</td>
+            <td className="border p-2 text-right font-mono">{fmtMonto(totalLocalDebe)}</td>
+            <td className="border p-2 text-right font-mono text-destructive">{fmtMonto(totalLocalHaber)}</td>
+            <td className="border p-2 text-right font-mono">{fmtMonto(totalUsdDebe)}</td>
+            <td className="border p-2 text-right font-mono text-destructive">{fmtMonto(totalUsdHaber)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <p className="text-xs text-muted-foreground mt-3">
+        TC estimado: {tc.toFixed(3)} | Asiento: {record.asiento || '—'}
+      </p>
     </div>
   );
 }

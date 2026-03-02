@@ -617,7 +617,7 @@ export function DevengadoIGV() {
         documentoNro: '', // Se generará automáticamente
         moneda: 'USD',
         monto: 0, // Se calculará
-        estado: 'REGISTRADO' as const,
+        estado: 'REVISADO' as const,
         fechaRegistro: new Date().toISOString().split('T')[0],
         fechaPago: null,
         observacion: formData.glosa,
@@ -647,7 +647,7 @@ export function DevengadoIGV() {
 
       if (result.success) {
         console.log('Devengado IGV ND (grupo) guardado:', JSON.stringify(result.records, null, 2));
-        toast.success('Devengado IGV No Domiciliado registrado correctamente (2 registros creados)');
+        toast.success('Devengado IGV No Domiciliado registrado en estado REVISADO');
         navigate('/devengados-igv');
       } else {
         toast.error(result.error || 'Error al guardar el devengado ND');
@@ -701,7 +701,7 @@ export function DevengadoIGV() {
       documentoNro: formData.documentoNumero,
       moneda: esND ? 'USD' : 'PEN',
       monto: formData.totalObligacion,
-      estado: 'REGISTRADO',
+      estado: 'REVISADO',
       fechaRegistro: new Date().toISOString().split('T')[0],
       fechaPago: null,
       observacion: formData.glosa,
@@ -718,7 +718,7 @@ export function DevengadoIGV() {
 
     if (result.success) {
       console.log('Devengado IGV guardado:', JSON.stringify(result.record, null, 2));
-      toast.success(existingId ? 'Devengado IGV actualizado correctamente' : 'Devengado IGV registrado correctamente');
+      toast.success(existingId ? 'Devengado IGV actualizado correctamente' : 'Devengado IGV registrado en estado REVISADO');
       navigate('/devengados-igv');
     } else {
       toast.error(result.error || 'Error al guardar el devengado');
