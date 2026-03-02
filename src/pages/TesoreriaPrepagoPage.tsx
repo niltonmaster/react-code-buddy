@@ -15,7 +15,7 @@ import { getDevengados, saveDevengado, DevengadoRecord, CuentaBancaria, saveDeve
 import { savePago } from '@/lib/pagosStorage';
 
 // Solo estados permitidos para Tesorería en Pre-Pago
-const ESTADOS_PREPAGO = ['TODOS', 'REGISTRADO', 'EN_PREPAGO'] as const;
+const ESTADOS_PREPAGO = ['TODOS', 'APROBADO', 'PAGADO_PARCIALMENTE', 'EN_PREPAGO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
 const UNIDADES_NEGOCIO = ['FCR-DL 19990', 'FCR-DL 20530', 'FCR-MACROFONDO', 'ONP-PENSIONES'] as const;
 const PAGE_SIZES = [10, 20, 50] as const;
@@ -52,7 +52,8 @@ function formatMonto(monto: number, moneda?: string): string {
 
 function getEstadoBadgeVariant(estado: DevengadoRecord['estado']): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (estado) {
-    case 'REGISTRADO': return 'secondary';
+    case 'APROBADO': return 'default';
+    case 'PAGADO_PARCIALMENTE': return 'secondary';
     case 'EN_PREPAGO': return 'default';
     case 'PAGADO': return 'outline';
     case 'ANULADO': return 'destructive';
@@ -104,17 +105,17 @@ export default function TesoreriaPrepagoPage() {
   const [filterEntidad, setFilterEntidad] = useState('FCR');
   const [filterUnidadNegocio, setFilterUnidadNegocio] = useState('FCR-DL 19990');
   const [filterPeriodo, setFilterPeriodo] = useState('');
-  const [filterEstado, setFilterEstado] = useState<string>('REGISTRADO');
+  const [filterEstado, setFilterEstado] = useState<string>('APROBADO');
   const [filterProveedor, setFilterProveedor] = useState('');
   // Filtros aplicados
   const [appliedFilters, setAppliedFilters] = useState({
     entidad: 'FCR',
     unidadNegocio: 'FCR-DL 19990',
     periodo: '',
-    estado: 'REGISTRADO',
+    estado: 'APROBADO',
     proveedor: '',
   });
-  
+
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -155,8 +156,8 @@ export default function TesoreriaPrepagoPage() {
   const filteredDevengados = useMemo(() => {
     return devengados
       .filter(d => {
-        // Solo REGISTRADO y EN_PREPAGO
-        if (d.estado !== 'REGISTRADO' && d.estado !== 'EN_PREPAGO') return false;
+        // Solo estados visibles para Tesorería: APROBADO, PAGADO_PARCIALMENTE, EN_PREPAGO
+        if (d.estado !== 'APROBADO' && d.estado !== 'PAGADO_PARCIALMENTE' && d.estado !== 'EN_PREPAGO') return false;
         
         // Para ND: solo mostrar registros PRINCIPAL (el -1 se crea al confirmar prepago)
         if (d.tipoDevengado === 'NO_DOMICILIADO' && d.rol === 'IGV') return false;
@@ -205,7 +206,7 @@ export default function TesoreriaPrepagoPage() {
       entidad: 'FCR',
       unidadNegocio: 'FCR-DL 19990',
       periodo: '',
-      estado: 'REGISTRADO',
+      estado: 'APROBADO',
       proveedor: '',
     };
     setFilterEntidad(defaults.entidad);
@@ -318,8 +319,9 @@ export default function TesoreriaPrepagoPage() {
       return;
     }
 
-    // Actualizar devengado principal a PAGADO
-    saveDevengado({ ...dev, estado: 'PAGADO', fechaPago: getFechaHoy() });
+    // Actualizar devengado principal: ND queda PAGADO_PARCIALMENTE, D queda PAGADO
+    const estadoPrincipal = isND ? 'PAGADO_PARCIALMENTE' : 'PAGADO';
+    saveDevengado({ ...dev, estado: estadoPrincipal, fechaPago: isND ? null : getFechaHoy() });
 
     // Para ND: crear el registro -1 (IGV) con estado PAGADO
     if (isND && dev.groupId) {
@@ -511,7 +513,7 @@ export default function TesoreriaPrepagoPage() {
                       {isNDMode && <TableCell className="font-mono text-sm">{dev.asiento || '-'}</TableCell>}
                       <TableCell className="text-right font-mono">
                         {isNDMode
-                          ? formatMonto(dev.montoIgvUSD || dev.monto)
+                          ? formatMonto(dev.totalObligacionUSD || dev.monto)
                           : formatMonto(dev.monto)
                         }
                       </TableCell>
@@ -532,13 +534,13 @@ export default function TesoreriaPrepagoPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openModificar(dev)} disabled={dev.estado !== 'REGISTRADO'}>
+                          <Button variant="outline" size="sm" onClick={() => openModificar(dev)} disabled={dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE'}>
                             <Edit className="h-4 w-4 mr-1" /> Modificar
                           </Button>
                           <Button
                             variant="default" size="sm"
                             onClick={() => handleGenerarPrePago(dev)}
-                            disabled={dev.estado !== 'REGISTRADO' || !dev.tipoPago}
+                            disabled={(dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE') || !dev.tipoPago}
                             className="bg-[#0d3b5e] hover:bg-[#0a2d47]"
                           >
                             <CreditCard className="h-4 w-4 mr-1" /> Generar Pre-Pago
@@ -697,66 +699,85 @@ export default function TesoreriaPrepagoPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ========== Modal Comprobante de Giro ========== */}
+      {/* ========== Modal Comprobante de Giro — Diseño TO-BE ========== */}
       <Dialog open={comprobanteOpen} onOpenChange={setComprobanteOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" /> Comprobante de Giro
-            </DialogTitle>
-            <DialogDescription>Pre-pago generado exitosamente</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden">
           {comprobanteData && (
-            <div className="space-y-3 py-4">
-              <div className="border rounded-lg p-4 bg-muted/30 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">N° Pago:</span>
-                  <span className="font-mono font-semibold">{comprobanteData.pagoId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fecha:</span>
-                  <span>{formatFecha(comprobanteData.fecha)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Girado a:</span>
-                  <span className="font-medium">{comprobanteData.giradoA}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Documento:</span>
-                  <span className="font-mono">{comprobanteData.documento}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Modalidad:</span>
-                  <span>{comprobanteData.modalidadPago}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cuenta:</span>
-                  <span>{comprobanteData.cuenta}</span>
-                </div>
-                {comprobanteData.noPago !== '-' && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">No. Pago (Telebank):</span>
-                    <span className="font-mono">{comprobanteData.noPago}</span>
+            <>
+              {/* Cabecera con acento visual */}
+              <div className="bg-primary px-6 py-5 text-primary-foreground">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary-foreground/20 rounded-full p-2">
+                      <CheckCircle className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold">Comprobante de Giro</h2>
+                      <p className="text-sm opacity-80">Pre-pago registrado exitosamente</p>
+                    </div>
                   </div>
-                )}
-                <hr />
-                <div className="flex justify-between text-base font-bold">
-                  <span>Monto:</span>
-                  <span className="text-primary">{comprobanteData.moneda === 'PEN' ? 'S/' : '$'} {formatMonto(comprobanteData.monto)}</span>
+                  <div className="text-right">
+                    <p className="text-xs opacity-70">N° Pago</p>
+                    <p className="font-mono font-bold text-lg">{comprobanteData.pagoId}</p>
+                  </div>
                 </div>
               </div>
-              <div className="text-sm">
-                <span className="text-muted-foreground">Glosa:</span>
-                <p className="mt-1">{comprobanteData.glosa}</p>
+
+              <div className="px-6 py-5 space-y-5">
+                {/* Monto destacado */}
+                <div className="text-center py-4 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Monto Girado</p>
+                  <p className="text-3xl font-bold text-primary font-mono">
+                    {comprobanteData.moneda === 'PEN' ? 'S/' : 'USD'} {formatMonto(comprobanteData.monto)}
+                  </p>
+                </div>
+
+                {/* Datos en grid 2 columnas */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Beneficiario</p>
+                    <p className="font-medium mt-0.5">{comprobanteData.giradoA}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Fecha</p>
+                    <p className="font-medium mt-0.5">{formatFecha(comprobanteData.fecha)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Documento</p>
+                    <p className="font-mono font-medium mt-0.5">{comprobanteData.documento}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Modalidad de Pago</p>
+                    <p className="font-medium mt-0.5">{comprobanteData.modalidadPago}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Cuenta Bancaria</p>
+                    <p className="font-medium mt-0.5">{comprobanteData.cuenta}</p>
+                  </div>
+                  {comprobanteData.noPago !== '-' && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">No. Pago (Telebank)</p>
+                      <p className="font-mono font-bold mt-0.5">{comprobanteData.noPago}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Glosa */}
+                <div className="border-t pt-3">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Glosa / Concepto</p>
+                  <p className="text-sm leading-relaxed">{comprobanteData.glosa}</p>
+                </div>
               </div>
-            </div>
+
+              {/* Footer acciones */}
+              <div className="border-t px-6 py-4 bg-muted/30 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => { setComprobanteOpen(false); navigate('/tesoreria/pagos'); }}>
+                  Ir a Lista de Pagos
+                </Button>
+                <Button onClick={() => setComprobanteOpen(false)}>Cerrar</Button>
+              </div>
+            </>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setComprobanteOpen(false); navigate('/tesoreria/pagos'); }}>
-              Ir a Lista de Pagos
-            </Button>
-            <Button onClick={() => setComprobanteOpen(false)}>Cerrar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
