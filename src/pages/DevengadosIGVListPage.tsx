@@ -558,9 +558,7 @@ export default function DevengadosIGVListPage() {
                               </DropdownMenuItem>
                             ) : (
                               <>
-                                <DropdownMenuItem onClick={() => handleVerEditar(dev)}
-                                  disabled={dev.estado === 'APROBADO' || dev.estado === 'PAGADO_PARCIALMENTE'}
-                                >
+                                <DropdownMenuItem onClick={() => handleVerEditar(dev)}>
                                   {dev.estado === 'REGISTRADO' ? 'Ver / Editar' : 'Ver detalle'}
                                 </DropdownMenuItem>
                                 {/* Aprobar: solo visible en REGISTRADO, solo PRINCIPAL */}
