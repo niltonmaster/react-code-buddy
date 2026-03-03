@@ -106,6 +106,10 @@ export default function DevengadosIGVListPage() {
   const [aprobarDialogOpen, setAprobarDialogOpen] = useState(false);
   const [devengadoToAprobar, setDevengadoToAprobar] = useState<DevengadoRecord | null>(null);
 
+  // Modal detalle hijo IGV (solo lectura)
+  const [igvDetailOpen, setIgvDetailOpen] = useState(false);
+  const [igvDetailDev, setIgvDetailDev] = useState<DevengadoRecord | null>(null);
+
   useEffect(() => {
     // Carga inicial con filtros aplicados por defecto
     setDevengados(getDevengadosByUnidad(appliedFilters.unidadNegocio));
@@ -219,9 +223,10 @@ export default function DevengadosIGVListPage() {
   };
 
   const handleVerEditar = (dev: DevengadoRecord) => {
-    // Punto 5: hijo IGV no redirige a /devengado-igv
+    // Hijo IGV: abrir modal de detalle (solo lectura), NO navegar
     if (dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') {
-      toast.info('El registro IGV (-1) es resultado del pago, solo visualización');
+      setIgvDetailDev(dev);
+      setIgvDetailOpen(true);
       return;
     }
     // Caso normal: navegar al registro directamente
@@ -721,6 +726,65 @@ export default function DevengadosIGVListPage() {
           )}
           <DialogFooter>
             <Button onClick={() => setVoucherAPOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal detalle hijo IGV (solo lectura) */}
+      <Dialog open={igvDetailOpen} onOpenChange={setIgvDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalle Registro IGV (-1)</DialogTitle>
+            <DialogDescription>
+              Este registro IGV (-1) es resultado del pago (Tesorería). Solo visualización.
+            </DialogDescription>
+          </DialogHeader>
+          {igvDetailDev && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <span className="font-medium text-muted-foreground">Proveedor:</span>
+                <span>{igvDetailDev.proveedor}</span>
+                <span className="font-medium text-muted-foreground">Periodo:</span>
+                <span>{igvDetailDev.periodo}</span>
+                <span className="font-medium text-muted-foreground">Documento:</span>
+                <span>{igvDetailDev.documentoNro}</span>
+                <span className="font-medium text-muted-foreground">Moneda:</span>
+                <span>{igvDetailDev.moneda}</span>
+                <span className="font-medium text-muted-foreground">Monto USD:</span>
+                <span className="font-mono">{formatMonto(igvDetailDev.monto)}</span>
+                <span className="font-medium text-muted-foreground">Estado:</span>
+                <span><Badge variant={getEstadoBadgeVariant(igvDetailDev.estado)}>{igvDetailDev.estado}</Badge></span>
+                <span className="font-medium text-muted-foreground">F. Registro:</span>
+                <span>{formatFecha(igvDetailDev.fechaRegistro)}</span>
+                <span className="font-medium text-muted-foreground">F. Pago:</span>
+                <span>{formatFecha(igvDetailDev.fechaPago)}</span>
+                <span className="font-medium text-muted-foreground">Asiento:</span>
+                <span className="font-mono">{igvDetailDev.asiento || '—'}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2">
+            {igvDetailDev?.groupId && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const principal = devengados.find(
+                    d => d.groupId === igvDetailDev.groupId && d.rol === 'PRINCIPAL'
+                  );
+                  if (principal) {
+                    setIgvDetailOpen(false);
+                    navigate(`/devengado-igv?id=${principal.id}`, {
+                      state: { fromPagoFacil: false, fromLista: true, editId: principal.id }
+                    });
+                  } else {
+                    toast.error('No se encontró el registro principal asociado.');
+                  }
+                }}
+              >
+                Ir al Principal
+              </Button>
+            )}
+            <Button onClick={() => setIgvDetailOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
