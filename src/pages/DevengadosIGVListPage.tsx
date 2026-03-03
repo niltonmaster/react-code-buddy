@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Search, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Copy, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -66,6 +67,9 @@ function getEstadoBadgeVariant(estado: DevengadoRecord['estado']): 'default' | '
 export default function DevengadosIGVListPage() {
   const navigate = useNavigate();
   const [devengados, setDevengados] = useState<DevengadoRecord[]>([]);
+  
+  // Segmented control (bandeja) - preconfigurar filtro estado
+  const [bandeja, setBandeja] = useState<string>('todos');
   
   // Filtros de selección
   const [filterEntidad, setFilterEntidad] = useState('FCR');
@@ -133,8 +137,10 @@ export default function DevengadosIGVListPage() {
       .filter(d => {
         // Filtro por periodo (exacto)
         if (appliedFilters.periodo && d.periodo !== appliedFilters.periodo) return false;
-        // Filtro por estado
-        if (appliedFilters.estado !== 'TODOS' && d.estado !== appliedFilters.estado) return false;
+        // Filtro por estado (soporta APROBADOS_GRUPO = APROBADO + PAGADO_PARCIALMENTE)
+        if (appliedFilters.estado === 'APROBADOS_GRUPO') {
+          if (d.estado !== 'APROBADO' && d.estado !== 'PAGADO_PARCIALMENTE') return false;
+        } else if (appliedFilters.estado !== 'TODOS' && d.estado !== appliedFilters.estado) return false;
         // Filtro por proveedor (contains, case-insensitive)
         if (appliedFilters.proveedor && !d.proveedor.toLowerCase().includes(appliedFilters.proveedor.toLowerCase())) return false;
         return true;
@@ -172,6 +178,23 @@ export default function DevengadosIGVListPage() {
     });
     setCurrentPage(1);
     toast.info('Filtros aplicados');
+  };
+
+  const handleBandejaChange = (value: string) => {
+    setBandeja(value);
+    let newEstado = 'TODOS';
+    if (value === 'pendientes') newEstado = 'REGISTRADO';
+    else if (value === 'aprobados') newEstado = 'APROBADOS_GRUPO'; // placeholder interno
+    else if (value === 'pagados') newEstado = 'PAGADO';
+    
+    setFilterEstado(newEstado === 'APROBADOS_GRUPO' ? 'TODOS' : newEstado);
+    
+    // Aplicar filtros inmediatamente
+    setAppliedFilters(prev => ({
+      ...prev,
+      estado: newEstado
+    }));
+    setCurrentPage(1);
   };
 
   const handlePageSizeChange = (newSize: string) => {
@@ -467,6 +490,16 @@ export default function DevengadosIGVListPage() {
             </div>
           </div>
         </Card>
+
+        {/* Segmented control - Bandejas */}
+        <Tabs value={bandeja} onValueChange={handleBandejaChange} className="mb-4">
+          <TabsList>
+            <TabsTrigger value="todos">Todos</TabsTrigger>
+            <TabsTrigger value="pendientes">Pendientes</TabsTrigger>
+            <TabsTrigger value="aprobados">Aprobados</TabsTrigger>
+            <TabsTrigger value="pagados">Pagados</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Tabla */}
         <Card className="overflow-hidden">
