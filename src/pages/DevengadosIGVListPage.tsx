@@ -219,17 +219,10 @@ export default function DevengadosIGVListPage() {
   };
 
   const handleVerEditar = (dev: DevengadoRecord) => {
-    // A) Para IGV ND: si es el hijo (rol='IGV'), redirigir al padre del grupo
-    if (dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV' && dev.groupId) {
-      const grupo = getDevengadoNDGroup(dev.groupId);
-      const padre = grupo.find(g => g.rol === 'PRINCIPAL');
-      if (padre) {
-        toast.info('El IGV (-1) se gestiona desde el registro Principal');
-        navigate(`/devengado-igv?id=${padre.id}`, { 
-          state: { fromPagoFacil: false, fromLista: true, editId: padre.id } 
-        });
-        return;
-      }
+    // Punto 5: hijo IGV no redirige a /devengado-igv
+    if (dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') {
+      toast.info('El registro IGV (-1) es resultado del pago, solo visualización');
+      return;
     }
     // Caso normal: navegar al registro directamente
     navigate(`/devengado-igv?id=${dev.id}`, { state: { fromPagoFacil: false, fromLista: true, editId: dev.id } });
@@ -331,15 +324,8 @@ export default function DevengadosIGVListPage() {
     const isND = dev.tipoDevengado === 'NO_DOMICILIADO';
     const newEstado = isND ? 'PAGADO_PARCIALMENTE' : 'APROBADO';
     
-    // Para ND: aprobar también el registro hijo del grupo
-    if (isND && dev.groupId) {
-      const grupo = getDevengadoNDGroup(dev.groupId);
-      grupo.forEach(g => {
-        updateDevengadoStatus(g.id, newEstado as DevengadoRecord['estado']);
-      });
-    } else {
-      updateDevengadoStatus(dev.id, newEstado as DevengadoRecord['estado']);
-    }
+    // Punto 1: Solo actualizar el PRINCIPAL, NO el hijo IGV
+    updateDevengadoStatus(dev.id, newEstado as DevengadoRecord['estado']);
     
     setDevengados(getDevengadosByUnidad(appliedFilters.unidadNegocio));
     setAprobarDialogOpen(false);
@@ -355,15 +341,8 @@ export default function DevengadosIGVListPage() {
     setDevengadoToAprobar(null);
   };
 
-  const handleIrPrePago = (id: number) => {
-    const success = updateDevengadoStatus(id, 'EN_PREPAGO');
-    if (success) {
-      toast.success('Devengado enviado a Pre-Pago (Tesorería)');
-      setDevengados(getDevengadosByUnidad(appliedFilters.unidadNegocio));
-    } else {
-      toast.error('Error al enviar a Pre-Pago');
-    }
-  };
+  // Punto 4: Eliminado handleIrPrePago - la separación de roles
+  // Contabilidad → Devengados / Tesorería → Módulo Pre-Pago
 
   const handleVolver = () => {
     navigate('/');
@@ -567,41 +546,42 @@ export default function DevengadosIGVListPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => handleVerEditar(dev)}
-                              disabled={dev.estado === 'APROBADO' || dev.estado === 'PAGADO_PARCIALMENTE'}
-                            >
-                              {dev.estado === 'REGISTRADO' ? 'Ver / Editar' : 'Ver detalle'}
-                            </DropdownMenuItem>
-                            {/* Aprobar: solo visible en REGISTRADO */}
-                            {dev.estado === 'REGISTRADO' && !(dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') && (
-                              <DropdownMenuItem onClick={() => handleAprobar(dev)}>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Aprobar
+                            {/* Punto 5: hijo IGV solo "Ver", sin editar ni redirigir */}
+                            {dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV' ? (
+                              <DropdownMenuItem onClick={() => handleVerEditar(dev)}>
+                                Ver detalle
                               </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={() => handleVerEditar(dev)}
+                                  disabled={dev.estado === 'APROBADO' || dev.estado === 'PAGADO_PARCIALMENTE'}
+                                >
+                                  {dev.estado === 'REGISTRADO' ? 'Ver / Editar' : 'Ver detalle'}
+                                </DropdownMenuItem>
+                                {/* Aprobar: solo visible en REGISTRADO, solo PRINCIPAL */}
+                                {dev.estado === 'REGISTRADO' && (
+                                  <DropdownMenuItem onClick={() => handleAprobar(dev)}>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Aprobar
+                                  </DropdownMenuItem>
+                                )}
+                                {/* Copiar: solo en padre ND o en D */}
+                                <DropdownMenuItem onClick={() => handleCopiar(dev)}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copiar
+                                </DropdownMenuItem>
+                                {/* Punto 4: Eliminado "Ir a Pre-Pago" - separación roles */}
+                                <DropdownMenuItem 
+                                  onClick={() => handleAnular(dev)}
+                                  disabled={dev.estado === 'PAGADO' || dev.estado === 'ANULADO'}
+                                  className={`text-destructive focus:text-destructive ${
+                                    (dev.estado === 'PAGADO' || dev.estado === 'ANULADO') ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                >
+                                  Anular
+                                </DropdownMenuItem>
+                              </>
                             )}
-                            {/* F) Copiar solo en padre ND, ocultar en hijo */}
-                            {!(dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'IGV') && (
-                              <DropdownMenuItem onClick={() => handleCopiar(dev)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Copiar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem 
-                              onClick={() => handleIrPrePago(dev.id)}
-                              disabled={dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE'}
-                              className={(dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE') ? 'opacity-50 cursor-not-allowed' : ''}
-                            >
-                              Ir a Pre-Pago
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleAnular(dev)}
-                              disabled={dev.estado === 'PAGADO' || dev.estado === 'ANULADO'}
-                              className={`text-destructive focus:text-destructive ${
-                                (dev.estado === 'PAGADO' || dev.estado === 'ANULADO') ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            >
-                              Anular
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -749,24 +729,48 @@ export default function DevengadosIGVListPage() {
 }
 
 // ════════════════════════════════════════════════
-// Voucher AP Table (inline, reutiliza datos del record ND)
+// Punto 3: Voucher AP – usa record + formSnapshot + constantes existentes
 // ════════════════════════════════════════════════
+import {
+  CUENTAS_COMISION_ND,
+  CUENTA_IGV_SERVICIO_ND,
+  CUENTA_IGV_NO_DOMICILIADO,
+  getCuentaComisionKey,
+  PERSONA_ND,
+} from '@/components/DevengadoIGV/constants';
+
 const fmtMonto = (v: number) =>
   v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function VoucherAPTable({ record }: { record: DevengadoRecord }) {
+  const snap = record.formSnapshot || {};
   const baseUsd = record.montoBaseUSD || 0;
   const igvUsd = record.montoIgvUSD || 0;
   const igvSoles = record.igvSoles || 0;
-  // Estimar TC a partir de igvSoles / igvUsd
-  const tc = igvUsd > 0 ? igvSoles / igvUsd : 0;
+
+  // TC: preferir formSnapshot.tipoCambio, fallback igvSoles/igvUsd
+  const tc = snap.tipoCambio && snap.tipoCambio > 0
+    ? snap.tipoCambio
+    : (igvUsd > 0 ? igvSoles / igvUsd : 0);
   const baseSoles = Math.round(baseUsd * tc * 100) / 100;
 
+  // Resolver cuentas desde constantes existentes
+  const portafolio = snap._portafolio || '';
+  const proveedores: string[] = snap._proveedoresSeleccionados || [];
+  const key = getCuentaComisionKey(portafolio, proveedores);
+  const cuentasPar = CUENTAS_COMISION_ND[key];
+  const persona = PERSONA_ND[key] || '';
+  const facturaLabel = snap.documentoNumero ? `OB-${snap.documentoNumero}` : '';
+
+  // Línea 1 (Haber) y Línea 3 (Debe) - cuentas variables
+  const cuentaHaber = cuentasPar?.lineaHaber || { cuenta: '0000', descripcion: `Comisión ${record.proveedor}` };
+  const cuentaDebe = cuentasPar?.lineaDebe || { cuenta: '0000', descripcion: `Gasto Comisión ${record.proveedor}` };
+
   const lineas = [
-    { num: 1, cuenta: 'Variable', desc: `Comisión ${record.proveedor}`, localDebe: 0, localHaber: baseSoles, usdDebe: 0, usdHaber: baseUsd },
-    { num: 2, cuenta: '4011201', desc: 'IGV No Domiciliados', localDebe: 0, localHaber: igvSoles, usdDebe: 0, usdHaber: igvUsd },
-    { num: 3, cuenta: 'Variable', desc: `Gasto Comisión ${record.proveedor}`, localDebe: baseSoles, localHaber: 0, usdDebe: baseUsd, usdHaber: 0 },
-    { num: 4, cuenta: '6411101', desc: 'Gasto IGV No Domiciliados', localDebe: igvSoles, localHaber: 0, usdDebe: igvUsd, usdHaber: 0 },
+    { num: 1, cuenta: cuentaHaber.cuenta, desc: cuentaHaber.descripcion, persona, factura: facturaLabel, localDebe: 0, localHaber: baseSoles, usdDebe: 0, usdHaber: baseUsd },
+    { num: 2, cuenta: CUENTA_IGV_SERVICIO_ND.cuenta, desc: CUENTA_IGV_SERVICIO_ND.descripcion, persona, factura: facturaLabel, localDebe: 0, localHaber: igvSoles, usdDebe: 0, usdHaber: igvUsd },
+    { num: 3, cuenta: cuentaDebe.cuenta, desc: cuentaDebe.descripcion, persona, factura: facturaLabel, localDebe: baseSoles, localHaber: 0, usdDebe: baseUsd, usdHaber: 0 },
+    { num: 4, cuenta: CUENTA_IGV_NO_DOMICILIADO.cuenta, desc: CUENTA_IGV_NO_DOMICILIADO.descripcion, persona, factura: facturaLabel, localDebe: igvSoles, localHaber: 0, usdDebe: igvUsd, usdHaber: 0 },
   ];
 
   const totalLocalDebe = lineas.reduce((s, l) => s + l.localDebe, 0);
@@ -781,11 +785,15 @@ function VoucherAPTable({ record }: { record: DevengadoRecord }) {
           <tr className="bg-muted/50">
             <th className="border p-2 w-8">#</th>
             <th className="border p-2">Cuenta</th>
-            <th className="border p-2">Descripción</th>
+            <th className="border p-2">Descripción Cuenta</th>
+            <th className="border p-2">Persona</th>
+            <th className="border p-2">Factura</th>
             <th className="border p-2 text-right" colSpan={2}>LOCAL</th>
             <th className="border p-2 text-right" colSpan={2}>DÓLARES</th>
           </tr>
           <tr className="bg-muted/30 text-[10px]">
+            <th className="border p-1"></th>
+            <th className="border p-1"></th>
             <th className="border p-1"></th>
             <th className="border p-1"></th>
             <th className="border p-1"></th>
@@ -801,6 +809,8 @@ function VoucherAPTable({ record }: { record: DevengadoRecord }) {
               <td className="border p-2 text-center font-mono">{l.num}</td>
               <td className="border p-2 font-mono">{l.cuenta}</td>
               <td className="border p-2">{l.desc}</td>
+              <td className="border p-2 font-mono">{l.persona}</td>
+              <td className="border p-2 font-mono">{l.factura}</td>
               <td className="border p-2 text-right font-mono">{l.localDebe > 0 ? fmtMonto(l.localDebe) : '-'}</td>
               <td className="border p-2 text-right font-mono text-destructive">{l.localHaber > 0 ? fmtMonto(l.localHaber) : '-'}</td>
               <td className="border p-2 text-right font-mono">{l.usdDebe > 0 ? fmtMonto(l.usdDebe) : '-'}</td>
@@ -810,7 +820,7 @@ function VoucherAPTable({ record }: { record: DevengadoRecord }) {
         </tbody>
         <tfoot>
           <tr className="bg-muted/50 font-semibold">
-            <td colSpan={3} className="border p-2 text-right">Total Voucher:</td>
+            <td colSpan={5} className="border p-2 text-right">Total Voucher:</td>
             <td className="border p-2 text-right font-mono">{fmtMonto(totalLocalDebe)}</td>
             <td className="border p-2 text-right font-mono text-destructive">{fmtMonto(totalLocalHaber)}</td>
             <td className="border p-2 text-right font-mono">{fmtMonto(totalUsdDebe)}</td>
@@ -819,7 +829,7 @@ function VoucherAPTable({ record }: { record: DevengadoRecord }) {
         </tfoot>
       </table>
       <p className="text-xs text-muted-foreground mt-3">
-        TC estimado: {tc.toFixed(3)} | Asiento: {record.asiento || '—'}
+        TC: {tc.toFixed(3)} | Asiento: {record.asiento || '—'}
       </p>
     </div>
   );
