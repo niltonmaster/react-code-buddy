@@ -86,6 +86,7 @@ export function DevengadoIGV() {
   const copyData = state?.copyData;
 
   const [originalTipoDevengado, setOriginalTipoDevengado] = useState<'DOMICILIADO' | 'NO_DOMICILIADO' | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   // Determinar si es modo No Domiciliado (desde Pago Fácil ND, lista ND, o registro cargado)
   const isNoDomiciliado = fromPagoFacilND || tipoDevengadoLista === 'NO_DOMICILIADO' || originalTipoDevengado === 'NO_DOMICILIADO';
@@ -412,6 +413,10 @@ export function DevengadoIGV() {
         setOriginalTipoDevengado(existing.tipoDevengado || 'DOMICILIADO');
 
         // Si hay snapshot guardado, restaurar directamente
+        // Determinar si es solo lectura por estado
+        const readOnlyEstados = new Set(["APROBADO", "PAGADO_PARCIALMENTE", "PAGADO"]);
+        setIsReadOnly(readOnlyEstados.has(existing.estado));
+
         if (existing.formSnapshot) {
           setFormData(existing.formSnapshot as any);
           // Restaurar contexto ND (portafolio/proveedores) del snapshot
@@ -777,6 +782,13 @@ export function DevengadoIGV() {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
+        {/* Aviso solo lectura */}
+        {isReadOnly && (
+          <div className="bg-muted border border-border rounded-md px-4 py-3 mb-6 text-sm text-muted-foreground">
+            Modo solo lectura: el devengado ya fue aprobado / procesado.
+          </div>
+        )}
+
         {/* Botón traer mes anterior */}
         <Card className="p-4 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -795,7 +807,7 @@ export function DevengadoIGV() {
             <Button
               variant="outline"
               onClick={handleTraerMesAnterior}
-              disabled={isFromPagoFacil}
+              disabled={isFromPagoFacil || isReadOnly}
               title={isFromPagoFacil ? 'La información ya fue cargada automáticamente' : ''}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -825,15 +837,15 @@ export function DevengadoIGV() {
           </TabsList>
 
           <TabsContent value="general">
-            <TabInformacionGeneral formData={formData} onChange={handleChange} isNoDomiciliado={isNoDomiciliado} isFromPagoFacil={isFromPagoFacil} />
+            <TabInformacionGeneral formData={formData} onChange={handleChange} isNoDomiciliado={isNoDomiciliado} isFromPagoFacil={isFromPagoFacil} isReadOnly={isReadOnly} />
           </TabsContent>
 
           <TabsContent value="monetaria">
-            <TabInformacionMonetaria formData={formData} onChange={handleChange} isNoDomiciliado={isNoDomiciliado} isFromPagoFacil={isFromPagoFacil} />
+            <TabInformacionMonetaria formData={formData} onChange={handleChange} isNoDomiciliado={isNoDomiciliado} isFromPagoFacil={isFromPagoFacil} isReadOnly={isReadOnly} />
           </TabsContent>
 
           <TabsContent value="distribucion">
-            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} portafolio={portafolioND} proveedores={proveedoresND} facturaNro={formData.documentoNumero} />
+            <TabDistribucionContable formData={formData} isFromPagoFacil={isFromPagoFacil} isNoDomiciliado={isNoDomiciliado} portafolio={portafolioND} proveedores={proveedoresND} facturaNro={formData.documentoNumero} isReadOnly={isReadOnly} />
           </TabsContent>
         </Tabs>
 
@@ -843,7 +855,7 @@ export function DevengadoIGV() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver
           </Button>
-          <Button onClick={handleGuardar} className="bg-primary">
+          <Button onClick={handleGuardar} className="bg-primary" disabled={isReadOnly}>
             <Save className="mr-2 h-4 w-4" />
             Guardar devengado (demo)
           </Button>
