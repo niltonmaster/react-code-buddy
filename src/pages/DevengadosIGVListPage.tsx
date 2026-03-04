@@ -28,7 +28,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { getDevengadosByUnidad, getDevengadoNDGroup, updateDevengadoStatus, DevengadoRecord } from '@/lib/devengadosStorage';
+import { getDevengadosByUnidad, getDevengadoNDGroup, updateDevengadoStatus, saveDevengado, DevengadoRecord } from '@/lib/devengadosStorage';
 
 const ESTADOS = ['TODOS', 'REGISTRADO', 'APROBADO', 'EN_PREPAGO', 'PAGADO', 'PAGADO_PARCIALMENTE', 'ANULADO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
@@ -326,11 +326,43 @@ export default function DevengadosIGVListPage() {
   const handleConfirmAprobar = () => {
     if (!devengadoToAprobar) return;
     const dev = devengadoToAprobar;
-    const isND = dev.tipoDevengado === 'NO_DOMICILIADO';
+    const isND = dev.tipoDevengado === 'NO_DOMICILIADO' && dev.rol === 'PRINCIPAL';
     const newEstado = isND ? 'PAGADO_PARCIALMENTE' : 'APROBADO';
     
-    // Punto 1: Solo actualizar el PRINCIPAL, NO el hijo IGV
+    // 2.1 Actualizar el PRINCIPAL
     updateDevengadoStatus(dev.id, newEstado as DevengadoRecord['estado']);
+    
+    // 2.2 Para ND: crear automáticamente el registro hijo IGV (-1) si no existe
+    if (isND && dev.groupId) {
+      const grupo = getDevengadoNDGroup(dev.groupId);
+      const yaExisteHijo = grupo.some(g => g.rol === 'IGV');
+      if (!yaExisteHijo) {
+        const today = new Date().toISOString().split('T')[0];
+        const igvRecord: Omit<DevengadoRecord, 'id'> = {
+          periodo: dev.periodo,
+          proveedor: dev.proveedor,
+          entidad: dev.entidad || 'FCR',
+          asiento: dev.asiento || null,
+          documentoNro: `${dev.documentoNro}-1`,
+          rol: 'IGV',
+          estado: 'APROBADO',
+          fechaRegistro: today,
+          fechaPago: null,
+          groupId: dev.groupId,
+          moneda: 'USD',
+          monto: dev.montoIgvUSD || 0,
+          montoBaseUSD: dev.montoBaseUSD,
+          montoIgvUSD: dev.montoIgvUSD,
+          totalObligacionUSD: dev.totalObligacionUSD,
+          igvSoles: dev.igvSoles,
+          ruc: dev.ruc,
+          tipoDevengado: 'NO_DOMICILIADO',
+          unidadNegocio: dev.unidadNegocio || 'FCR-MACROFONDO',
+          observacion: 'IGV NO DOMICILIADO - IGV',
+        };
+        saveDevengado(igvRecord);
+      }
+    }
     
     setDevengados(getDevengadosByUnidad(appliedFilters.unidadNegocio));
     setAprobarDialogOpen(false);
