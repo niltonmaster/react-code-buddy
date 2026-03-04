@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Search, ArrowLeft, Edit, CreditCard, ChevronLeft, ChevronRight, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { getDevengados, saveDevengado, DevengadoRecord, CuentaBancaria, saveDevengadoNDGroup } from '@/lib/devengadosStorage';
+import { getDevengados, saveDevengado, DevengadoRecord, CuentaBancaria, saveDevengadoNDGroup, updateDevengadoStatus, getDevengadoNDGroup } from '@/lib/devengadosStorage';
 import { savePago } from '@/lib/pagosStorage';
 
 // Solo estados permitidos para Tesorería en Pre-Pago
@@ -159,7 +159,7 @@ export default function TesoreriaPrepagoPage() {
         // Solo estados visibles para Tesorería: APROBADO, PAGADO_PARCIALMENTE, EN_PREPAGO
         if (d.estado !== 'APROBADO' && d.estado !== 'PAGADO_PARCIALMENTE' && d.estado !== 'EN_PREPAGO') return false;
         
-        // Para ND: solo mostrar registros PRINCIPAL (el -1 se crea al confirmar prepago)
+        // Para ND: solo mostrar registros PRINCIPAL (el -1 ya existe pero se gestiona vía su estado)
         if (d.tipoDevengado === 'NO_DOMICILIADO' && d.rol === 'IGV') return false;
         
         const entidadMatch = !d.entidad || normalizeKey(d.entidad) === normalizeKey(appliedFilters.entidad);
@@ -323,33 +323,13 @@ export default function TesoreriaPrepagoPage() {
     const estadoPrincipal = isND ? 'PAGADO_PARCIALMENTE' : 'PAGADO';
     saveDevengado({ ...dev, estado: estadoPrincipal, fechaPago: isND ? null : getFechaHoy() });
 
-    // Para ND: crear el registro -1 (IGV) con estado PAGADO
+    // Para ND: buscar el registro -1 (IGV) existente y actualizarlo a PAGADO
     if (isND && dev.groupId) {
-      const igvRecord: Omit<DevengadoRecord, 'id'> = {
-        periodo: dev.periodo,
-        proveedor: dev.proveedor,
-        ruc: dev.ruc,
-        documentoNro: `${dev.documentoNro}-1`,
-        moneda: 'PEN',
-        monto: dev.igvSoles || 0,
-        estado: 'PAGADO',
-        fechaRegistro: getFechaHoy(),
-        fechaPago: getFechaHoy(),
-        observacion: `IGV NO DOMICILIADO - IGV (${noPago || 'S/N'})`,
-        entidad: 'FCR',
-        unidadNegocio: dev.unidadNegocio || 'FCR-MACROFONDO',
-        tipoDevengado: 'NO_DOMICILIADO',
-        groupId: dev.groupId,
-        rol: 'IGV',
-        montoBaseUSD: dev.montoBaseUSD,
-        montoIgvUSD: dev.montoIgvUSD,
-        totalObligacionUSD: dev.totalObligacionUSD,
-        igvSoles: dev.igvSoles,
-        asiento: dev.asiento,
-        tipoPago: dev.tipoPago,
-        cuentaBancaria: dev.cuentaBancaria,
-      };
-      saveDevengado(igvRecord);
+      const grupo = getDevengadoNDGroup(dev.groupId);
+      const hijoIGV = grupo.find(g => g.rol === 'IGV');
+      if (hijoIGV) {
+        updateDevengadoStatus(hijoIGV.id, 'PAGADO', getFechaHoy());
+      }
     }
 
     // Mostrar comprobante de giro
