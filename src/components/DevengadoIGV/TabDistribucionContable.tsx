@@ -19,6 +19,7 @@ interface Props {
   portafolio?: string;
   proveedores?: string[];
   facturaNro?: string;
+  isReadOnly?: boolean;
 }
 
 const fmt = (v: number) =>
@@ -31,11 +32,12 @@ export function TabDistribucionContable({
   portafolio = '',
   proveedores = [],
   facturaNro = '',
+  isReadOnly = false,
 }: Props) {
   // ─── Caso IGV Domiciliado (D) — tabla simple ───
   if (!isNoDomiciliado) {
     return (
-      <TabDistribucionDomiciliado formData={formData} />
+      <TabDistribucionDomiciliado formData={formData} isReadOnly={isReadOnly} />
     );
   }
 
@@ -46,6 +48,7 @@ export function TabDistribucionContable({
       portafolio={portafolio}
       proveedores={proveedores}
       facturaNro={facturaNro}
+      isReadOnly={isReadOnly}
     />
   );
 }
@@ -54,7 +57,7 @@ export function TabDistribucionContable({
 // Sub-componente: Domiciliado (D) — 1 línea editable
 // ════════════════════════════════════════════════════════
 
-function TabDistribucionDomiciliado({ formData }: { formData: DevengadoFormData }) {
+function TabDistribucionDomiciliado({ formData, isReadOnly = false }: { formData: DevengadoFormData; isReadOnly?: boolean }) {
   const params = PARAMS_DEVENGADO_IGV;
   const montoDisplay = formData.montoDistribucion;
 
@@ -80,12 +83,13 @@ function TabDistribucionDomiciliado({ formData }: { formData: DevengadoFormData 
             <tbody>
               <tr>
                 <td className="text-center font-mono">1</td>
-                <td>
-                  <Input
-                    value={cuenta}
-                    onChange={(e) => setCuenta(e.target.value)}
-                    className="h-7 text-xs font-mono w-28 inline-block"
-                  />
+                  <td>
+                    <Input
+                      value={cuenta}
+                      onChange={(e) => setCuenta(e.target.value)}
+                      className={`h-7 text-xs font-mono w-28 inline-block ${isReadOnly ? "bg-muted/50" : ""}`}
+                      disabled={isReadOnly}
+                    />
                   <span className="text-muted-foreground ml-2">– {descripcion}</span>
                 </td>
                 <td>
@@ -96,12 +100,13 @@ function TabDistribucionDomiciliado({ formData }: { formData: DevengadoFormData 
                   <span className="font-mono text-primary font-medium">{params.proveedorCodigo}</span>
                   <span className="text-muted-foreground ml-2">– {params.proveedorNombre}</span>
                 </td>
-                <td>
-                  <Input
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    className="h-7 text-xs w-48"
-                  />
+                  <td>
+                    <Input
+                      value={descripcion}
+                      onChange={(e) => setDescripcion(e.target.value)}
+                      className={`h-7 text-xs w-48 ${isReadOnly ? "bg-muted/50" : ""}`}
+                      disabled={isReadOnly}
+                    />
                 </td>
                 <td className="text-right">
                   <span className="highlight-cell px-3 py-1 rounded font-mono font-semibold">
@@ -142,11 +147,13 @@ function TabDistribucionNoDomiciliado({
   portafolio,
   proveedores,
   facturaNro = '',
+  isReadOnly = false,
 }: {
   formData: DevengadoFormData;
   portafolio: string;
   proveedores: string[];
   facturaNro?: string;
+  isReadOnly?: boolean;
 }) {
   const tc = formData.tipoCambio || 0;
   const baseUsd = formData.montoAfecto || 0;
@@ -260,28 +267,32 @@ function TabDistribucionNoDomiciliado({
                     <Input
                       value={l.cuenta}
                       onChange={(e) => updateCuenta(i, 'cuenta', e.target.value)}
-                      className="h-7 text-xs font-mono w-24"
+                      className={`h-7 text-xs font-mono w-24 ${isReadOnly ? "bg-muted/50" : ""}`}
+                      disabled={isReadOnly}
                     />
                   </td>
                   <td>
                     <Input
                       value={l.descripcion}
                       onChange={(e) => updateCuenta(i, 'descripcion', e.target.value)}
-                      className="h-7 text-xs w-64"
+                      className={`h-7 text-xs w-64 ${isReadOnly ? "bg-muted/50" : ""}`}
+                      disabled={isReadOnly}
                     />
                   </td>
                   <td>
                     <Input
                       value={personas[i]}
                       onChange={(e) => updatePersona(i, e.target.value)}
-                      className="h-7 text-xs font-mono w-16"
+                      className={`h-7 text-xs font-mono w-16 ${isReadOnly ? "bg-muted/50" : ""}`}
+                      disabled={isReadOnly}
                     />
                   </td>
                   <td>
                     <Input
                       value={facturas[i]}
                       onChange={(e) => updateFactura(i, e.target.value)}
-                      className="h-7 text-xs font-mono w-32"
+                      className={`h-7 text-xs font-mono w-32 ${isReadOnly ? "bg-muted/50" : ""}`}
+                      disabled={isReadOnly}
                     />
                   </td>
                   <td className="text-right font-mono border-l border-border">

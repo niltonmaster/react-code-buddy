@@ -11,6 +11,7 @@ interface Props {
   onChange: (field: keyof DevengadoFormData, value: string | number | boolean) => void;
   isNoDomiciliado?: boolean;
   isFromPagoFacil?: boolean;
+  isReadOnly?: boolean;
 }
 
 const formatNumber = (value: number, decimals: number = 2): string => {
@@ -26,13 +27,13 @@ const parseFormattedNumber = (value: string): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = false, isFromPagoFacil = false }: Props) {
+export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = false, isFromPagoFacil = false, isReadOnly = false }: Props) {
 
   const isPagoFacilD = isFromPagoFacil && !isNoDomiciliado;
   const isPagoFacilND = isFromPagoFacil && isNoDomiciliado;
   const isNDManual = isNoDomiciliado && !isFromPagoFacil;
 
-  const camposBloqueados = isFromPagoFacil;
+  const camposBloqueados = isReadOnly || isFromPagoFacil;
 
   // ---- useEffect SOLO para ND Manual ----
   // Recalcula igv, igvSoles y totalObligacion cuando cambian los inputs editables
@@ -102,8 +103,9 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
             <Select
               value={formData.monedaDocumento}
               onValueChange={(v) => onChange('monedaDocumento', v)}
+              disabled={isReadOnly}
             >
-              <SelectTrigger>
+              <SelectTrigger className={isReadOnly ? "bg-muted/50" : ""}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -191,9 +193,9 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
                   type="number"
                   step="0.001"
                   value={formData.tipoCambio || ''}
-                  onChange={(e) => onChange('tipoCambio', parseFloat(e.target.value) || 0)}
-                  disabled={isPagoFacilND}
-                  className={`font-mono text-right ${isPagoFacilND ? "bg-muted/50" : "bg-white"}`}
+                onChange={(e) => onChange('tipoCambio', parseFloat(e.target.value) || 0)}
+                  disabled={isPagoFacilND || isReadOnly}
+                  className={`font-mono text-right ${(isPagoFacilND || isReadOnly) ? "bg-muted/50" : "bg-white"}`}
                   placeholder="0.000"
                 />
               </div>
@@ -229,8 +231,9 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
             <Select
               value={formData.monedaPago}
               onValueChange={(v) => onChange('monedaPago', v)}
+              disabled={isReadOnly}
             >
-              <SelectTrigger>
+              <SelectTrigger className={isReadOnly ? "bg-muted/50" : ""}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -244,8 +247,9 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
             <Select
               value={formData.cuentaBancaria}
               onValueChange={(v) => onChange('cuentaBancaria', v)}
+              disabled={isReadOnly}
             >
-              <SelectTrigger>
+              <SelectTrigger className={isReadOnly ? "bg-muted/50" : ""}>
                 <SelectValue placeholder="Seleccione cuenta bancaria" />
               </SelectTrigger>
               <SelectContent>
@@ -267,19 +271,20 @@ export function TabInformacionMonetaria({ formData, onChange, isNoDomiciliado = 
               id="generarPago"
               checked={formData.generarPagoAutomatico}
               onCheckedChange={(checked) => onChange('generarPagoAutomatico', !!checked)}
+              disabled={isReadOnly}
             />
             <Label htmlFor="generarPago" className="text-sm cursor-pointer">
               Generar pago (Automático)
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="aplicarRetencion" />
+            <Checkbox id="aplicarRetencion" disabled={isReadOnly} />
             <Label htmlFor="aplicarRetencion" className="text-sm cursor-pointer text-muted-foreground">
               Aplicar retención
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="pagoAnticipado" />
+            <Checkbox id="pagoAnticipado" disabled={isReadOnly} />
             <Label htmlFor="pagoAnticipado" className="text-sm cursor-pointer text-muted-foreground">
               Pago anticipado
             </Label>

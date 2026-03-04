@@ -10,11 +10,12 @@ interface Props {
   onChange: (field: keyof DevengadoFormData, value: string | number | boolean) => void;
   isNoDomiciliado?: boolean;
   isFromPagoFacil?: boolean;
+  isReadOnly?: boolean;
 }
 
-export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = false, isFromPagoFacil = false }: Props) {
+export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = false, isFromPagoFacil = false, isReadOnly = false }: Props) {
   // Campos siempre deshabilitados (datos del proveedor precargados)
-  const camposBloqueados = isFromPagoFacil;
+  const disabledField = isReadOnly || isFromPagoFacil;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -27,8 +28,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Input
               value={formData.proveedor}
               onChange={(e) => onChange('proveedor', e.target.value)}
-              disabled={camposBloqueados}
-              className={camposBloqueados ? "bg-muted/50" : ""}
+              disabled={disabledField}
+              className={disabledField ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -36,8 +37,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Input
               value={formData.ruc}
               onChange={(e) => onChange('ruc', e.target.value)}
-              disabled={camposBloqueados}
-              className={camposBloqueados ? "bg-muted/50" : ""}
+              disabled={disabledField}
+              className={disabledField ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -45,8 +46,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Input
               value={formData.entidad}
               onChange={(e) => onChange('entidad', e.target.value)}
-              disabled={camposBloqueados}
-              className={camposBloqueados ? "bg-muted/50" : ""}
+              disabled={disabledField}
+              className={disabledField ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -54,8 +55,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Input
               value={formData.tipoDocumento}
               onChange={(e) => onChange('tipoDocumento', e.target.value)}
-              disabled={camposBloqueados}
-              className={camposBloqueados ? "bg-muted/50" : ""}
+              disabled={disabledField}
+              className={disabledField ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -63,8 +64,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Input
               value={formData.pagarA}
               onChange={(e) => onChange('pagarA', e.target.value)}
-              disabled={camposBloqueados}
-              className={camposBloqueados ? "bg-muted/50" : ""}
+              disabled={disabledField}
+              className={disabledField ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -73,6 +74,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
               value={formData.documentoNumero}
               onChange={(e) => onChange('documentoNumero', e.target.value)}
               placeholder={isNoDomiciliado ? "GE/0002499" : "IGVFCRSET2025"}
+              disabled={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
         </div>
@@ -96,6 +99,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
               type="date"
               value={formData.fechaEmision}
               onChange={(e) => onChange('fechaEmision', e.target.value)}
+              disabled={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -104,6 +109,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
               type="date"
               value={formData.fechaRecepcion}
               onChange={(e) => onChange('fechaRecepcion', e.target.value)}
+              disabled={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -112,6 +119,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
               type="date"
               value={formData.fechaVencimiento}
               onChange={(e) => onChange('fechaVencimiento', e.target.value)}
+              disabled={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div>
@@ -120,6 +129,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
               type="date"
               value={formData.fechaProgramacionPago}
               onChange={(e) => onChange('fechaProgramacionPago', e.target.value)}
+              disabled={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
         </div>
@@ -134,9 +145,9 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Select
               value={formData.unidadNegocio}
               onValueChange={(v) => onChange('unidadNegocio', v)}
-              disabled={camposBloqueados}
+              disabled={disabledField}
             >
-              <SelectTrigger className={camposBloqueados ? "bg-muted/50" : ""}>
+              <SelectTrigger className={disabledField ? "bg-muted/50" : ""}>
                 <SelectValue placeholder="Seleccione unidad de negocio" />
               </SelectTrigger>
               <SelectContent>
@@ -150,8 +161,9 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Select
               value={formData.tipoServicio}
               onValueChange={(v) => onChange('tipoServicio', v)}
+              disabled={isReadOnly}
             >
-              <SelectTrigger>
+              <SelectTrigger className={isReadOnly ? "bg-muted/50" : ""}>
                 <SelectValue placeholder="Seleccione tipo de servicio" />
               </SelectTrigger>
               <SelectContent>
@@ -167,8 +179,9 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
             <Select
               value={formData.tipoPago}
               onValueChange={(v) => onChange('tipoPago', v)}
+              disabled={isReadOnly}
             >
-              <SelectTrigger>
+              <SelectTrigger className={isReadOnly ? "bg-muted/50" : ""}>
                 <SelectValue placeholder="Seleccione tipo de pago" />
               </SelectTrigger>
               <SelectContent>
@@ -229,7 +242,8 @@ export function TabInformacionGeneral({ formData, onChange, isNoDomiciliado = fa
           value={formData.glosa}
           onChange={(e) => onChange('glosa', e.target.value)}
           placeholder="Ingrese la glosa del asiento contable..."
-          className="min-h-[80px]"
+          className={`min-h-[80px] ${isReadOnly ? "bg-muted/50" : ""}`}
+          disabled={isReadOnly}
         />
       </Card>
     </div>
