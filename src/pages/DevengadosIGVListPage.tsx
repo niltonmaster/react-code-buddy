@@ -335,9 +335,7 @@ export default function DevengadosIGVListPage() {
     // 2.2 Para ND: crear automáticamente el registro hijo IGV (-1) si no existe
     if (isND && dev.groupId) {
       const grupo = getDevengadoNDGroup(dev.groupId);
-      // Verificar que exista un hijo vinculado a ESTE padre específico
-      // (no a otro registro con el mismo groupId de mocks anteriores)
-      const yaExisteHijo = grupo.some(g => g.rol === 'IGV' && g.documentoNro === `${dev.documentoNro}-1`);
+      const yaExisteHijo = grupo.some(g => g.rol === 'IGV');
       if (!yaExisteHijo) {
         const today = new Date().toISOString().split('T')[0];
         const igvRecord: Omit<DevengadoRecord, 'id'> = {

@@ -187,7 +187,7 @@ const INITIAL_DATA: DevengadosData = {
       periodo: "2025-12",
       proveedor: "BBVA Asset Management S.A.",
       ruc: "00000000000",
-      documentoNro: "GE/0002499",
+      documentoNro: "GE/0002400",
       moneda: "USD",
       monto: 118146.06,
       estado: "PAGADO_PARCIALMENTE",
@@ -197,7 +197,7 @@ const INITIAL_DATA: DevengadosData = {
       entidad: "FCR",
       unidadNegocio: "FCR-MACROFONDO",
       tipoDevengado: "NO_DOMICILIADO",
-      groupId: "GE/0002499",
+      groupId: "GE/0002400",
       rol: "PRINCIPAL",
       montoBaseUSD: 100123.78,
       montoIgvUSD: 18022.28,
@@ -210,7 +210,7 @@ const INITIAL_DATA: DevengadosData = {
       periodo: "2025-12",
       proveedor: "BBVA Asset Management S.A.",
       ruc: "00000000000",
-      documentoNro: "GE/0002499-1",
+      documentoNro: "GE/0002400-1",
       moneda: "USD",
       monto: 18022.28,
       estado: "PAGADO",
@@ -220,7 +220,7 @@ const INITIAL_DATA: DevengadosData = {
       entidad: "FCR",
       unidadNegocio: "FCR-MACROFONDO",
       tipoDevengado: "NO_DOMICILIADO",
-      groupId: "GE/0002499",
+      groupId: "GE/0002400",
       rol: "IGV",
       montoBaseUSD: 100123.78,
       montoIgvUSD: 18022.28,
@@ -296,7 +296,7 @@ function getData(): DevengadosData {
     }
 
     // Migración 3: agregar mocks de IGV ND si no existen
-    const hasNDMocks = parsed.devengados.some(d => d.groupId === 'GE/0002499');
+    const hasNDMocks = parsed.devengados.some(d => d.groupId === 'GE/0002400');
     if (!hasNDMocks) {
       const ndMocks = INITIAL_DATA.devengados.filter(d => d.tipoDevengado === 'NO_DOMICILIADO');
       if (ndMocks.length > 0) {
@@ -519,6 +519,12 @@ export function saveDevengadoNDGroup(
   const groupSeq = data.seq.toString().padStart(7, '0');
   const autoGroupId = `GE/${groupSeq}`;
   const groupId = formFields?.documentoNumero || autoGroupId;
+  
+  // Validar duplicado por número de factura
+  const existePorFactura = data.devengados.some(d => d.groupId === groupId || d.documentoNro === groupId);
+  if (existePorFactura) {
+    return { success: false, error: `Ya existe un devengado para la factura ${groupId}` };
+  }
   
   const totalUSD = montoBaseUSD + montoIgvUSD;
   const today = new Date().toISOString().split('T')[0];
