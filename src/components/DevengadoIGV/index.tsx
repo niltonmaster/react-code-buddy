@@ -413,9 +413,8 @@ export function DevengadoIGV() {
         setOriginalTipoDevengado(existing.tipoDevengado || 'DOMICILIADO');
 
         // Si hay snapshot guardado, restaurar directamente
-        // Determinar si es solo lectura por estado
-        const readOnlyEstados = new Set(["APROBADO", "PAGADO_PARCIALMENTE", "PAGADO"]);
-        setIsReadOnly(readOnlyEstados.has(existing.estado));
+        // Solo lectura para cualquier estado distinto de REGISTRADO
+        setIsReadOnly(existing.estado !== "REGISTRADO");
 
         if (existing.formSnapshot) {
           setFormData(existing.formSnapshot as any);
