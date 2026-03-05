@@ -156,11 +156,15 @@ export default function TesoreriaPrepagoPage() {
   const filteredDevengados = useMemo(() => {
     return devengados
       .filter(d => {
-        // Solo estados visibles para Tesorería: APROBADO, PAGADO_PARCIALMENTE, EN_PREPAGO
-        if (d.estado !== 'APROBADO' && d.estado !== 'PAGADO_PARCIALMENTE' && d.estado !== 'EN_PREPAGO') return false;
-        
-        // Para ND: solo mostrar registros PRINCIPAL (el -1 ya existe pero se gestiona vía su estado)
-        if (d.tipoDevengado === 'NO_DOMICILIADO' && d.rol === 'IGV') return false;
+        // Para ND (FCR-MACROFONDO): mostrar SOLO el hijo IGV con estado APROBADO
+        const isNDRecord = d.tipoDevengado === 'NO_DOMICILIADO';
+        if (isNDRecord) {
+          // Solo mostrar hijos IGV aprobados (pendientes de pago)
+          if (d.rol !== 'IGV' || d.estado !== 'APROBADO') return false;
+        } else {
+          // Para D: solo estados visibles para Tesorería
+          if (d.estado !== 'APROBADO' && d.estado !== 'PAGADO_PARCIALMENTE' && d.estado !== 'EN_PREPAGO') return false;
+        }
         
         const entidadMatch = !d.entidad || normalizeKey(d.entidad) === normalizeKey(appliedFilters.entidad);
         const unidadMatch = !d.unidadNegocio || normalizeKey(d.unidadNegocio) === normalizeKey(appliedFilters.unidadNegocio);
@@ -319,17 +323,13 @@ export default function TesoreriaPrepagoPage() {
       return;
     }
 
-    // Actualizar devengado principal: ND queda PAGADO_PARCIALMENTE, D queda PAGADO
-    const estadoPrincipal = isND ? 'PAGADO_PARCIALMENTE' : 'PAGADO';
-    saveDevengado({ ...dev, estado: estadoPrincipal, fechaPago: isND ? null : getFechaHoy() });
-
-    // Para ND: buscar el registro -1 (IGV) existente y actualizarlo a PAGADO
-    if (isND && dev.groupId) {
-      const grupo = getDevengadoNDGroup(dev.groupId);
-      const hijoIGV = grupo.find(g => g.rol === 'IGV');
-      if (hijoIGV) {
-        updateDevengadoStatus(hijoIGV.id, 'PAGADO', getFechaHoy());
-      }
+    if (isND) {
+      // Para ND: el dev recibido ES el hijo IGV → marcarlo PAGADO directamente
+      updateDevengadoStatus(dev.id, 'PAGADO', getFechaHoy());
+      // El padre ya está en PAGADO_PARCIALMENTE desde la aprobación, no tocarlo
+    } else {
+      // Para D: marcar como PAGADO
+      saveDevengado({ ...dev, estado: 'PAGADO', fechaPago: getFechaHoy() });
     }
 
     // Mostrar comprobante de giro
@@ -354,7 +354,9 @@ export default function TesoreriaPrepagoPage() {
   // Confirmar Pre-Pago ND
   const handleConfirmarPrepagoND = () => {
     if (!confirmarDevengado) return;
-    if (!confirmarNoPago.trim()) {
+    // Telebank obligatorio solo para "Débito en cuenta"
+    const requiereTelebank = confirmarDevengado.tipoPago === 'Débito en cuenta';
+    if (requiereTelebank && !confirmarNoPago.trim()) {
       toast.error('Debe ingresar el No. Pago (Telebank)');
       return;
     }
@@ -661,7 +663,7 @@ export default function TesoreriaPrepagoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>No. Pago (Telebank) <span className="text-destructive">*</span></Label>
+              <Label>No. Pago (Telebank) {confirmarDevengado?.tipoPago === 'Débito en cuenta' && <span className="text-destructive">*</span>}</Label>
               <Input
                 value={confirmarNoPago}
                 onChange={(e) => setConfirmarNoPago(e.target.value)}
