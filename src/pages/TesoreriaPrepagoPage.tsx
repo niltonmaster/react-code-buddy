@@ -460,12 +460,13 @@ export default function TesoreriaPrepagoPage() {
                   <TableHead className="font-semibold">Periodo</TableHead>
                   <TableHead className="font-semibold">Documento</TableHead>
                   <TableHead className="font-semibold">Proveedor</TableHead>
+                  {isNDMode && <TableHead className="font-semibold">Beneficiario</TableHead>}
                   <TableHead className="font-semibold">Glosa</TableHead>
                   {isNDMode && <TableHead className="font-semibold">Asiento AP</TableHead>}
                   <TableHead className="font-semibold text-right">
-                    {isNDMode ? 'Monto (USD)' : 'Monto (S/)'}
+                    {isNDMode ? 'Monto IGV (USD)' : 'Monto (S/)'}
                   </TableHead>
-                  {isNDMode && <TableHead className="font-semibold text-right">IGV Soles</TableHead>}
+                  {isNDMode && <TableHead className="font-semibold text-right">IGV a pagar (S/)</TableHead>}
                   <TableHead className="font-semibold">Tipo de Pago</TableHead>
                   <TableHead className="font-semibold">Cuenta Bancaria</TableHead>
                   <TableHead className="font-semibold">Estado</TableHead>
