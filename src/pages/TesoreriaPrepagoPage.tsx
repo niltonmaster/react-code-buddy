@@ -476,7 +476,7 @@ export default function TesoreriaPrepagoPage() {
               <TableBody>
                 {paginatedDevengados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isNDMode ? 11 : 9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={isNDMode ? 13 : 9} className="text-center py-8 text-muted-foreground">
                       No hay devengados pendientes de pago
                     </TableCell>
                   </TableRow>
