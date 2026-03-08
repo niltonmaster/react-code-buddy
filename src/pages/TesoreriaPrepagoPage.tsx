@@ -487,11 +487,12 @@ export default function TesoreriaPrepagoPage() {
                       <TableCell className="font-medium">{dev.periodo}</TableCell>
                       <TableCell className="font-mono text-sm">{dev.documentoNro || '-'}</TableCell>
                       <TableCell>{dev.proveedor}</TableCell>
+                      {isNDMode && <TableCell className="font-medium">SUNAT</TableCell>}
                       <TableCell className="max-w-[200px] truncate">{dev.observacion || '-'}</TableCell>
                       {isNDMode && <TableCell className="font-mono text-sm">{dev.asiento || '-'}</TableCell>}
                       <TableCell className="text-right font-mono">
                         {isNDMode
-                          ? formatMonto(dev.totalObligacionUSD || dev.monto)
+                          ? formatMonto(dev.montoIgvUSD || dev.monto)
                           : formatMonto(dev.monto)
                         }
                       </TableCell>
