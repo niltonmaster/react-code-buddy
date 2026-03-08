@@ -460,12 +460,13 @@ export default function TesoreriaPrepagoPage() {
                   <TableHead className="font-semibold">Periodo</TableHead>
                   <TableHead className="font-semibold">Documento</TableHead>
                   <TableHead className="font-semibold">Proveedor</TableHead>
+                  {isNDMode && <TableHead className="font-semibold">Beneficiario</TableHead>}
                   <TableHead className="font-semibold">Glosa</TableHead>
                   {isNDMode && <TableHead className="font-semibold">Asiento AP</TableHead>}
                   <TableHead className="font-semibold text-right">
-                    {isNDMode ? 'Monto (USD)' : 'Monto (S/)'}
+                    {isNDMode ? 'Monto IGV (USD)' : 'Monto (S/)'}
                   </TableHead>
-                  {isNDMode && <TableHead className="font-semibold text-right">IGV Soles</TableHead>}
+                  {isNDMode && <TableHead className="font-semibold text-right">IGV a pagar (S/)</TableHead>}
                   <TableHead className="font-semibold">Tipo de Pago</TableHead>
                   <TableHead className="font-semibold">Cuenta Bancaria</TableHead>
                   <TableHead className="font-semibold">Estado</TableHead>
@@ -475,7 +476,7 @@ export default function TesoreriaPrepagoPage() {
               <TableBody>
                 {paginatedDevengados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isNDMode ? 11 : 9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={isNDMode ? 13 : 9} className="text-center py-8 text-muted-foreground">
                       No hay devengados pendientes de pago
                     </TableCell>
                   </TableRow>
@@ -486,11 +487,12 @@ export default function TesoreriaPrepagoPage() {
                       <TableCell className="font-medium">{dev.periodo}</TableCell>
                       <TableCell className="font-mono text-sm">{dev.documentoNro || '-'}</TableCell>
                       <TableCell>{dev.proveedor}</TableCell>
+                      {isNDMode && <TableCell className="font-medium">SUNAT</TableCell>}
                       <TableCell className="max-w-[200px] truncate">{dev.observacion || '-'}</TableCell>
                       {isNDMode && <TableCell className="font-mono text-sm">{dev.asiento || '-'}</TableCell>}
                       <TableCell className="text-right font-mono">
                         {isNDMode
-                          ? formatMonto(dev.totalObligacionUSD || dev.monto)
+                          ? formatMonto(dev.montoIgvUSD || dev.monto)
                           : formatMonto(dev.monto)
                         }
                       </TableCell>
@@ -630,8 +632,8 @@ export default function TesoreriaPrepagoPage() {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Monto Total USD:</span>
-                <p className="font-mono font-semibold">$ {formatMonto(confirmarDevengado?.totalObligacionUSD || confirmarDevengado?.monto || 0)}</p>
+                <span className="text-muted-foreground">Monto IGV (USD):</span>
+                <p className="font-mono font-semibold">$ {formatMonto(confirmarDevengado?.montoIgvUSD || confirmarDevengado?.monto || 0)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">IGV a pagar (Soles):</span>
