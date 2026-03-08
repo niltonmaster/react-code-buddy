@@ -632,8 +632,8 @@ export default function TesoreriaPrepagoPage() {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Monto Total USD:</span>
-                <p className="font-mono font-semibold">$ {formatMonto(confirmarDevengado?.totalObligacionUSD || confirmarDevengado?.monto || 0)}</p>
+                <span className="text-muted-foreground">Monto IGV (USD):</span>
+                <p className="font-mono font-semibold">$ {formatMonto(confirmarDevengado?.montoIgvUSD || confirmarDevengado?.monto || 0)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">IGV a pagar (Soles):</span>
