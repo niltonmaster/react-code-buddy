@@ -10,12 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-import { Search, ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Eye, FileText, CheckCircle, Upload, File, X } from 'lucide-react';
+import { Search, ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Eye, FileText, Upload, File, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPagos, updatePago, Pago, SustentoPago } from '@/lib/pagosStorage';
-import { getDevengadoById, saveDevengado } from '@/lib/devengadosStorage';
 
-const ESTADOS_PAGO = ['TODOS', 'GENERADO', 'PAGADO', 'ANULADO'] as const;
+const ESTADOS_PAGO = ['TODOS', 'PAGADO', 'ANULADO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
 const UNIDADES_NEGOCIO = ['FCR-DL 19990', 'FCR-DL 20530', 'FCR-MACROFONDO', 'ONP-PENSIONES'] as const;
 const PAGE_SIZES = [10, 20, 50] as const;
@@ -32,19 +31,10 @@ function formatFecha(fecha: string | undefined): string {
 
 function getEstadoBadgeVariant(estado: Pago['estado']): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (estado) {
-    case 'GENERADO': return 'default';
     case 'PAGADO': return 'outline';
     case 'ANULADO': return 'destructive';
     default: return 'secondary';
   }
-}
-
-function getFechaHoy(): string {
-  const hoy = new Date();
-  const year = hoy.getFullYear();
-  const month = (hoy.getMonth() + 1).toString().padStart(2, '0');
-  const day = hoy.getDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 export default function TesoreriaPagosPage() {
@@ -74,9 +64,7 @@ export default function TesoreriaPagosPage() {
   // Modales
   const [verPagoOpen, setVerPagoOpen] = useState(false);
   const [verSustentoOpen, setVerSustentoOpen] = useState(false);
-  const [confirmarPagoOpen, setConfirmarPagoOpen] = useState(false);
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
-  const [fechaPagoInput, setFechaPagoInput] = useState('');
   
   // Sustento files state
   const [sustentoFiles, setSustentoFiles] = useState<SustentoPago>({});
@@ -156,7 +144,6 @@ export default function TesoreriaPagosPage() {
   };
 
   const handleFileUpload = (type: keyof SustentoPago) => {
-    // Mock file upload - en producción sería un input file real
     const mockFileName = `${type}_${Date.now()}.pdf`;
     setSustentoFiles(prev => ({
       ...prev,
@@ -184,49 +171,6 @@ export default function TesoreriaPagosPage() {
     } else {
       toast.error('Error al guardar el sustento');
     }
-  };
-
-  const handleOpenConfirmarPago = (pago: Pago) => {
-    setSelectedPago(pago);
-    setFechaPagoInput(getFechaHoy());
-    setConfirmarPagoOpen(true);
-  };
-
-  const handleConfirmarPago = () => {
-    if (!selectedPago || !fechaPagoInput) {
-      toast.error('Debe ingresar la fecha de pago');
-      return;
-    }
-
-    // Actualizar Pago
-    const pagoResult = updatePago(selectedPago.id, {
-      estado: 'PAGADO',
-      fechaPago: fechaPagoInput
-    });
-
-    if (!pagoResult.success) {
-      toast.error(pagoResult.error || 'Error al actualizar el pago');
-      return;
-    }
-
-    // Actualizar Devengado
-    const devengado = getDevengadoById(parseInt(selectedPago.devengadoId));
-    if (devengado) {
-      const devResult = saveDevengado({
-        ...devengado,
-        estado: 'PAGADO',
-        fechaPago: fechaPagoInput
-      });
-      
-      if (!devResult.success) {
-        toast.warning('Pago confirmado, pero hubo un error actualizando el devengado');
-      }
-    }
-
-    toast.success('Pago confirmado correctamente');
-    loadData();
-    setConfirmarPagoOpen(false);
-    setSelectedPago(null);
   };
 
   const handleVolver = () => {
@@ -260,7 +204,7 @@ export default function TesoreriaPagosPage() {
       <div className="institutional-header">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">Lista de Pagos</h1>
+            <h1 className="text-xl font-bold">Pagos Realizados</h1>
             <p className="text-sm opacity-80">RUC: 20421413216 | Tesorería</p>
           </div>
           <Badge variant="outline" className="bg-white/10 text-white border-white/30">
@@ -355,7 +299,6 @@ export default function TesoreriaPagosPage() {
                   <TableHead className="font-semibold text-right">Monto (S/)</TableHead>
                   <TableHead className="font-semibold">Tipo de Pago</TableHead>
                   <TableHead className="font-semibold">Cuenta Bancaria</TableHead>
-                  <TableHead className="font-semibold">F. Generación</TableHead>
                   <TableHead className="font-semibold">F. Pago</TableHead>
                   <TableHead className="font-semibold">Estado</TableHead>
                   <TableHead className="font-semibold text-center">Acciones</TableHead>
@@ -364,7 +307,7 @@ export default function TesoreriaPagosPage() {
               <TableBody>
                 {paginatedPagos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No hay pagos para los filtros seleccionados
                     </TableCell>
                   </TableRow>
@@ -382,7 +325,6 @@ export default function TesoreriaPagosPage() {
                           : '-'
                         }
                       </TableCell>
-                      <TableCell>{formatFecha(pago.fechaGeneracion)}</TableCell>
                       <TableCell>{formatFecha(pago.fechaPago)}</TableCell>
                       <TableCell>
                         <Badge variant={getEstadoBadgeVariant(pago.estado)}>
@@ -410,12 +352,6 @@ export default function TesoreriaPagosPage() {
                               <FileText className="mr-2 h-4 w-4" />
                               Sustento del Pago
                             </DropdownMenuItem>
-                            {pago.estado === 'GENERADO' && (
-                              <DropdownMenuItem onClick={() => handleOpenConfirmarPago(pago)}>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Confirmar Pago
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -495,7 +431,7 @@ export default function TesoreriaPagosPage() {
         <div className="mt-6 flex gap-4">
           <Button variant="outline" onClick={handleVolver}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Pre-Pago
+            Volver a Pendientes de Pago
           </Button>
           <Button variant="ghost" onClick={handleVolverInicio}>
             Ir al inicio
@@ -569,15 +505,9 @@ export default function TesoreriaPagosPage() {
               
               <Separator />
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground text-xs">Fecha Generación</Label>
-                  <p className="font-medium">{formatFecha(selectedPago.fechaGeneracion)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Fecha Pago</Label>
-                  <p className="font-medium">{formatFecha(selectedPago.fechaPago)}</p>
-                </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">Fecha Pago</Label>
+                <p className="font-medium">{formatFecha(selectedPago.fechaPago)}</p>
               </div>
               
               <div>
@@ -672,7 +602,7 @@ export default function TesoreriaPagosPage() {
                 </div>
               </div>
               
-              {/* Copia de Cheque - solo si tipo de pago es Cheque */}
+              {/* Copia de Cheque */}
               {selectedPago.tipoPago === 'Cheque' && (
                 <div className="border rounded-lg p-4 flex items-center justify-between bg-muted/30">
                   <div className="flex items-center gap-3">
@@ -701,7 +631,7 @@ export default function TesoreriaPagosPage() {
                 </div>
               )}
               
-              {/* Voucher Bancario - solo si tipo de pago es Transferencia o Depósito */}
+              {/* Voucher Bancario */}
               {(selectedPago.tipoPago === 'Transferencia' || selectedPago.tipoPago === 'Depósito en Cuenta') && (
                 <div className="border rounded-lg p-4 flex items-center justify-between bg-muted/30">
                   <div className="flex items-center gap-3">
@@ -731,7 +661,7 @@ export default function TesoreriaPagosPage() {
               )}
               
               <p className="text-xs text-muted-foreground text-center italic">
-                Adjuntar documentos NO cambia el estado del pago. Use "Confirmar Pago" para finalizar.
+                Adjuntar documentos de respaldo para el pago registrado.
               </p>
             </div>
           )}
@@ -742,54 +672,6 @@ export default function TesoreriaPagosPage() {
             </Button>
             <Button onClick={handleGuardarSustento}>
               Guardar Sustento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Confirmar Pago */}
-      <Dialog open={confirmarPagoOpen} onOpenChange={setConfirmarPagoOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmar Pago</DialogTitle>
-            <DialogDescription>
-              Confirme el pago del periodo {selectedPago?.periodo} por S/ {selectedPago ? formatMonto(selectedPago.monto) : '0.00'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="fechaPago">Fecha de Pago</Label>
-              <Input
-                id="fechaPago"
-                type="date"
-                value={fechaPagoInput}
-                onChange={(e) => setFechaPagoInput(e.target.value)}
-              />
-            </div>
-            
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <p className="text-sm font-medium">Resumen:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Proveedor: {selectedPago?.proveedor}</li>
-                <li>• Tipo de Pago: {selectedPago?.tipoPago}</li>
-                <li>• Cuenta: {selectedPago?.cuentaBancaria.banco} {selectedPago?.cuentaBancaria.numeroMasked}</li>
-                <li>• Monto: <span className="font-mono font-medium text-foreground">S/ {selectedPago ? formatMonto(selectedPago.monto) : '0.00'}</span></li>
-              </ul>
-            </div>
-            
-            <p className="text-sm text-muted-foreground">
-              Al confirmar, el pago pasará a estado <Badge variant="outline" className="ml-1">PAGADO</Badge> y se actualizará el devengado correspondiente.
-            </p>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmarPagoOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleConfirmarPago}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Confirmar Pago
             </Button>
           </DialogFooter>
         </DialogContent>
