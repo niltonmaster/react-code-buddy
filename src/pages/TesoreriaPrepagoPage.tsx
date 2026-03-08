@@ -14,8 +14,7 @@ import { toast } from 'sonner';
 import { getDevengados, saveDevengado, DevengadoRecord, CuentaBancaria, saveDevengadoNDGroup, updateDevengadoStatus, getDevengadoNDGroup } from '@/lib/devengadosStorage';
 import { savePago } from '@/lib/pagosStorage';
 
-// Solo estados permitidos para Tesorería en Pre-Pago
-const ESTADOS_PREPAGO = ['TODOS', 'APROBADO', 'PAGADO_PARCIALMENTE', 'EN_PREPAGO'] as const;
+const ESTADOS_PENDIENTES = ['TODOS', 'APROBADO'] as const;
 const ENTIDADES = ['FCR', 'ONP', 'ESSALUD'] as const;
 const UNIDADES_NEGOCIO = ['FCR-DL 19990', 'FCR-DL 20530', 'FCR-MACROFONDO', 'ONP-PENSIONES'] as const;
 const PAGE_SIZES = [10, 20, 50] as const;
@@ -53,8 +52,6 @@ function formatMonto(monto: number, moneda?: string): string {
 function getEstadoBadgeVariant(estado: DevengadoRecord['estado']): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (estado) {
     case 'APROBADO': return 'default';
-    case 'PAGADO_PARCIALMENTE': return 'secondary';
-    case 'EN_PREPAGO': return 'default';
     case 'PAGADO': return 'outline';
     case 'ANULADO': return 'destructive';
     default: return 'secondary';
@@ -126,8 +123,8 @@ export default function TesoreriaPrepagoPage() {
   const [modalTipoPago, setModalTipoPago] = useState('');
   const [modalCuentaBancaria, setModalCuentaBancaria] = useState<CuentaBancaria | null>(null);
   
-  // Modal Confirmar Pre-Pago (para ND con glosa, noPago, monto soles)
-  const [confirmarPrepagoOpen, setConfirmarPrepagoOpen] = useState(false);
+  // Modal Confirmar Pago ND (con glosa, noPago, monto soles)
+  const [confirmarPagoOpen, setConfirmarPagoOpen] = useState(false);
   const [confirmarDevengado, setConfirmarDevengado] = useState<DevengadoRecord | null>(null);
   const [confirmarGlosa, setConfirmarGlosa] = useState('');
   const [confirmarNoPago, setConfirmarNoPago] = useState('');
@@ -152,18 +149,17 @@ export default function TesoreriaPrepagoPage() {
     setDevengados(getDevengados());
   };
 
-  // Filtrar devengados
+  // Filtrar devengados: solo APROBADO para ambos casos
   const filteredDevengados = useMemo(() => {
     return devengados
       .filter(d => {
         // Para ND (FCR-MACROFONDO): mostrar SOLO el hijo IGV con estado APROBADO
         const isNDRecord = d.tipoDevengado === 'NO_DOMICILIADO';
         if (isNDRecord) {
-          // Solo mostrar hijos IGV aprobados (pendientes de pago)
           if (d.rol !== 'IGV' || d.estado !== 'APROBADO') return false;
         } else {
-          // Para D: solo estados visibles para Tesorería
-          if (d.estado !== 'APROBADO' && d.estado !== 'PAGADO_PARCIALMENTE' && d.estado !== 'EN_PREPAGO') return false;
+          // Para D: solo APROBADO
+          if (d.estado !== 'APROBADO') return false;
         }
         
         const entidadMatch = !d.entidad || normalizeKey(d.entidad) === normalizeKey(appliedFilters.entidad);
@@ -270,15 +266,15 @@ export default function TesoreriaPrepagoPage() {
     }
   };
 
-  // === Generar Pre-Pago ===
-  const handleGenerarPrePago = (dev: DevengadoRecord) => {
+  // === Registrar Pago ===
+  const handleRegistrarPago = (dev: DevengadoRecord) => {
     if (!dev.tipoPago) {
-      toast.error('Debe configurar el Tipo de Pago antes de generar el Pre-Pago');
+      toast.error('Debe configurar el Tipo de Pago antes de registrar el pago');
       return;
     }
     const requiresCuenta = (CUENTAS_BANCARIAS[dev.tipoPago] || []).length > 0;
     if (requiresCuenta && !dev.cuentaBancaria) {
-      toast.error('Debe configurar la Cuenta Bancaria antes de generar el Pre-Pago');
+      toast.error('Debe configurar la Cuenta Bancaria antes de registrar el pago');
       return;
     }
 
@@ -289,21 +285,21 @@ export default function TesoreriaPrepagoPage() {
       setConfirmarDevengado(dev);
       setConfirmarGlosa(defaultGlosa);
       setConfirmarNoPago('');
-      setConfirmarPrepagoOpen(true);
+      setConfirmarPagoOpen(true);
       return;
     }
 
-    // Para IGV D: flujo directo (existente)
-    ejecutarPrepago(dev);
+    // Para IGV D: flujo directo
+    ejecutarPago(dev);
   };
 
-  // Ejecutar el prepago (común D y ND después de confirmación)
-  const ejecutarPrepago = (dev: DevengadoRecord, glosa?: string, noPago?: string) => {
+  // Ejecutar el pago (común D y ND después de confirmación)
+  const ejecutarPago = (dev: DevengadoRecord, glosa?: string, noPago?: string) => {
     const isND = dev.tipoDevengado === 'NO_DOMICILIADO';
     // Para ND: el monto del pago es igvSoles (en PEN)
     const montoPago = isND ? (dev.igvSoles || dev.monto) : dev.monto;
 
-    // Crear pago
+    // Crear pago histórico con estado PAGADO directo
     const pagoResult = savePago({
       devengadoId: dev.id.toString(),
       periodo: dev.periodo,
@@ -314,19 +310,19 @@ export default function TesoreriaPrepagoPage() {
       tipoPago: dev.tipoPago!,
       cuentaBancaria: dev.cuentaBancaria || { id: '', banco: '', numeroMasked: '', moneda: 'PEN' },
       fechaGeneracion: getFechaHoy(),
-      estado: 'GENERADO',
-      observacion: glosa || `PRE-PAGO ${dev.documentoNro}`,
+      fechaPago: getFechaHoy(),
+      estado: 'PAGADO',
+      observacion: glosa || `PAGO ${dev.documentoNro}`,
     });
 
     if (!pagoResult.success) {
-      toast.error(pagoResult.error || 'Error al crear el pago');
+      toast.error(pagoResult.error || 'Error al registrar el pago');
       return;
     }
 
     if (isND) {
       // Para ND: el dev recibido ES el hijo IGV → marcarlo PAGADO directamente
       updateDevengadoStatus(dev.id, 'PAGADO', getFechaHoy());
-      // El padre ya está en PAGADO_PARCIALMENTE desde la aprobación, no tocarlo
     } else {
       // Para D: marcar como PAGADO
       saveDevengado({ ...dev, estado: 'PAGADO', fechaPago: getFechaHoy() });
@@ -338,7 +334,7 @@ export default function TesoreriaPrepagoPage() {
       documento: dev.documentoNro,
       monto: montoPago,
       moneda: isND ? 'PEN' : (dev.moneda || 'PEN'),
-      glosa: glosa || `PRE-PAGO ${dev.documentoNro}`,
+      glosa: glosa || `PAGO ${dev.documentoNro}`,
       modalidadPago: dev.tipoPago,
       cuenta: dev.cuentaBancaria ? `${dev.cuentaBancaria.banco} ${dev.cuentaBancaria.numeroMasked}` : '-',
       noPago: noPago || '-',
@@ -347,21 +343,20 @@ export default function TesoreriaPrepagoPage() {
     });
     setComprobanteOpen(true);
 
-    toast.success('Pre-Pago generado correctamente');
+    toast.success('Pago registrado correctamente');
     loadData();
   };
 
-  // Confirmar Pre-Pago ND
-  const handleConfirmarPrepagoND = () => {
+  // Confirmar Pago ND
+  const handleConfirmarPagoND = () => {
     if (!confirmarDevengado) return;
-    // Telebank obligatorio solo para "Débito en cuenta"
     const requiereTelebank = confirmarDevengado.tipoPago === 'Débito en cuenta';
     if (requiereTelebank && !confirmarNoPago.trim()) {
       toast.error('Debe ingresar el No. Pago (Telebank)');
       return;
     }
-    ejecutarPrepago(confirmarDevengado, confirmarGlosa, confirmarNoPago);
-    setConfirmarPrepagoOpen(false);
+    ejecutarPago(confirmarDevengado, confirmarGlosa, confirmarNoPago);
+    setConfirmarPagoOpen(false);
     setConfirmarDevengado(null);
   };
 
@@ -385,7 +380,7 @@ export default function TesoreriaPrepagoPage() {
       <div className="institutional-header">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">Preparación de Pre-Pago</h1>
+            <h1 className="text-xl font-bold">Pendientes de Pago</h1>
             <p className="text-sm opacity-80">RUC: 20421413216 | Tesorería</p>
           </div>
           <Badge variant="outline" className="bg-white/10 text-white border-white/30">
@@ -426,7 +421,7 @@ export default function TesoreriaPrepagoPage() {
                 <Select value={filterEstado} onValueChange={setFilterEstado}>
                   <SelectTrigger><SelectValue placeholder="Seleccione estado" /></SelectTrigger>
                   <SelectContent>
-                    {ESTADOS_PREPAGO.map(e => <SelectItem key={e} value={e}>{e === 'TODOS' ? 'Todos' : e}</SelectItem>)}
+                    {ESTADOS_PENDIENTES.map(e => <SelectItem key={e} value={e}>{e === 'TODOS' ? 'Todos' : e}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -481,7 +476,7 @@ export default function TesoreriaPrepagoPage() {
                 {paginatedDevengados.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={isNDMode ? 11 : 9} className="text-center py-8 text-muted-foreground">
-                      No hay devengados para los filtros seleccionados
+                      No hay devengados pendientes de pago
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -516,16 +511,16 @@ export default function TesoreriaPrepagoPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openModificar(dev)} disabled={dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE'}>
+                          <Button variant="outline" size="sm" onClick={() => openModificar(dev)} disabled={dev.estado !== 'APROBADO'}>
                             <Edit className="h-4 w-4 mr-1" /> Modificar
                           </Button>
                           <Button
                             variant="default" size="sm"
-                            onClick={() => handleGenerarPrePago(dev)}
-                            disabled={(dev.estado !== 'APROBADO' && dev.estado !== 'PAGADO_PARCIALMENTE') || !dev.tipoPago}
+                            onClick={() => handleRegistrarPago(dev)}
+                            disabled={dev.estado !== 'APROBADO' || !dev.tipoPago}
                             className="bg-[#0d3b5e] hover:bg-[#0a2d47]"
                           >
-                            <CreditCard className="h-4 w-4 mr-1" /> Generar Pre-Pago
+                            <CreditCard className="h-4 w-4 mr-1" /> Registrar Pago
                           </Button>
                         </div>
                       </TableCell>
@@ -623,11 +618,11 @@ export default function TesoreriaPrepagoPage() {
       </Dialog>
 
 
-      {/* ========== Modal Confirmar Pre-Pago ND ========== */}
-      <Dialog open={confirmarPrepagoOpen} onOpenChange={setConfirmarPrepagoOpen}>
+      {/* ========== Modal Confirmar Pago ND ========== */}
+      <Dialog open={confirmarPagoOpen} onOpenChange={setConfirmarPagoOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Confirmar Generación de Pre-Pago</DialogTitle>
+            <DialogTitle>Confirmar Registro de Pago</DialogTitle>
             <DialogDescription>
               {confirmarDevengado?.proveedor} — {confirmarDevengado?.documentoNro}
             </DialogDescription>
@@ -658,7 +653,7 @@ export default function TesoreriaPrepagoPage() {
                 value={confirmarGlosa}
                 onChange={(e) => setConfirmarGlosa(e.target.value)}
                 rows={3}
-                placeholder="Edite la glosa del pre-pago..."
+                placeholder="Edite la glosa del pago..."
               />
             </div>
 
@@ -673,9 +668,9 @@ export default function TesoreriaPrepagoPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmarPrepagoOpen(false)}>Cancelar</Button>
-            <Button onClick={handleConfirmarPrepagoND} className="bg-[#0d3b5e] hover:bg-[#0a2d47]">
-              <CheckCircle className="h-4 w-4 mr-1" /> Confirmar Pre-Pago
+            <Button variant="outline" onClick={() => setConfirmarPagoOpen(false)}>Cancelar</Button>
+            <Button onClick={handleConfirmarPagoND} className="bg-[#0d3b5e] hover:bg-[#0a2d47]">
+              <CheckCircle className="h-4 w-4 mr-1" /> Registrar Pago
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -695,7 +690,7 @@ export default function TesoreriaPrepagoPage() {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold">Comprobante de Giro</h2>
-                      <p className="text-sm opacity-80">Pre-pago registrado exitosamente</p>
+                      <p className="text-sm opacity-80">Pago registrado exitosamente</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -754,7 +749,7 @@ export default function TesoreriaPrepagoPage() {
               {/* Footer acciones */}
               <div className="border-t px-6 py-4 bg-muted/30 flex justify-end gap-3">
                 <Button variant="outline" onClick={() => { setComprobanteOpen(false); navigate('/tesoreria/pagos'); }}>
-                  Ir a Lista de Pagos
+                  Ir a Pagos Realizados
                 </Button>
                 <Button onClick={() => setComprobanteOpen(false)}>Cerrar</Button>
               </div>
