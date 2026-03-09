@@ -347,15 +347,20 @@ export default function TesoreriaPrepagoPage() {
     loadData();
   };
 
+  // Helper: determina si el tipo de pago requiere Telebank
+  const requiresTelebank = (tipoPago: string | undefined): boolean => {
+    return tipoPago === 'Débito en cuenta';
+  };
+
   // Confirmar Pago ND
   const handleConfirmarPagoND = () => {
     if (!confirmarDevengado) return;
-    const requiereTelebank = confirmarDevengado.tipoPago === 'Débito en cuenta';
-    if (requiereTelebank && !confirmarNoPago.trim()) {
+    if (requiresTelebank(confirmarDevengado.tipoPago) && !confirmarNoPago.trim()) {
       toast.error('Debe ingresar el No. Pago (Telebank)');
       return;
     }
-    ejecutarPago(confirmarDevengado, confirmarGlosa, confirmarNoPago);
+    const noPagoFinal = requiresTelebank(confirmarDevengado.tipoPago) ? confirmarNoPago : '';
+    ejecutarPago(confirmarDevengado, confirmarGlosa, noPagoFinal);
     setConfirmarPagoOpen(false);
     setConfirmarDevengado(null);
   };
@@ -659,15 +664,17 @@ export default function TesoreriaPrepagoPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>No. Pago (Telebank) {confirmarDevengado?.tipoPago === 'Débito en cuenta' && <span className="text-destructive">*</span>}</Label>
-              <Input
-                value={confirmarNoPago}
-                onChange={(e) => setConfirmarNoPago(e.target.value)}
-                placeholder="Ingrese número de reporte Telebank"
-              />
-              <p className="text-xs text-muted-foreground">Número del reporte de Telebank que sustenta la transacción bancaria</p>
-            </div>
+            {requiresTelebank(confirmarDevengado?.tipoPago) && (
+              <div className="space-y-2">
+                <Label>No. Pago (Telebank) <span className="text-destructive">*</span></Label>
+                <Input
+                  value={confirmarNoPago}
+                  onChange={(e) => setConfirmarNoPago(e.target.value)}
+                  placeholder="Ingrese número de reporte Telebank"
+                />
+                <p className="text-xs text-muted-foreground">Número del reporte de Telebank que sustenta la transacción bancaria</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmarPagoOpen(false)}>Cancelar</Button>
