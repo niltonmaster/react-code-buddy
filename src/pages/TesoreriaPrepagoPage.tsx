@@ -347,15 +347,20 @@ export default function TesoreriaPrepagoPage() {
     loadData();
   };
 
+  // Helper: determina si el tipo de pago requiere Telebank
+  const requiresTelebank = (tipoPago: string | undefined): boolean => {
+    return tipoPago === 'Débito en cuenta';
+  };
+
   // Confirmar Pago ND
   const handleConfirmarPagoND = () => {
     if (!confirmarDevengado) return;
-    const requiereTelebank = confirmarDevengado.tipoPago === 'Débito en cuenta';
-    if (requiereTelebank && !confirmarNoPago.trim()) {
+    if (requiresTelebank(confirmarDevengado.tipoPago) && !confirmarNoPago.trim()) {
       toast.error('Debe ingresar el No. Pago (Telebank)');
       return;
     }
-    ejecutarPago(confirmarDevengado, confirmarGlosa, confirmarNoPago);
+    const noPagoFinal = requiresTelebank(confirmarDevengado.tipoPago) ? confirmarNoPago : '';
+    ejecutarPago(confirmarDevengado, confirmarGlosa, noPagoFinal);
     setConfirmarPagoOpen(false);
     setConfirmarDevengado(null);
   };
