@@ -249,10 +249,6 @@ export function PantallaLiquidacion({ periodo, onVerPagoFacil, onVolver }: Props
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a selección
           </Button>
-          <Button variant="secondary" onClick={() => window.location.reload()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Recalcular Totales
-          </Button>
           <Button onClick={() => onVerPagoFacil(totales.importePagar, {
             facturas,
             boletas,
