@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, FileText, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Calculator, FileText, ArrowLeft } from 'lucide-react';
 import { ConceptoVenta, PeriodoSeleccionado, TotalesLiquidacion } from './types';
 import { TablaVentas } from './TablaVentas';
 
