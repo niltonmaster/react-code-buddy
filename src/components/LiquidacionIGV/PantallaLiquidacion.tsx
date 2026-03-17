@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, FileText, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Calculator, FileText, ArrowLeft } from 'lucide-react';
 import { ConceptoVenta, PeriodoSeleccionado, TotalesLiquidacion } from './types';
 import { TablaVentas } from './TablaVentas';
 
@@ -248,10 +248,6 @@ export function PantallaLiquidacion({ periodo, onVerPagoFacil, onVolver }: Props
           <Button variant="outline" onClick={onVolver}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a selección
-          </Button>
-          <Button variant="secondary" onClick={() => window.location.reload()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Recalcular Totales
           </Button>
           <Button onClick={() => onVerPagoFacil(totales.importePagar, {
             facturas,
