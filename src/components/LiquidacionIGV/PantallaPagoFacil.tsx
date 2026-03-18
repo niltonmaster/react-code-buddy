@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, FileText, Download } from 'lucide-react';
-import { PeriodoSeleccionado, ConceptoVenta, TotalesLiquidacion } from './types';
+import { PeriodoSeleccionado, ConceptoVenta, TotalesLiquidacion, usaFormatoNuevo } from './types';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -12,6 +12,7 @@ interface DatosLiquidacion {
   notasDebito: ConceptoVenta[];
   notasCredito: ConceptoVenta[];
   ventasNoGravadas: ConceptoVenta[];
+  descuentoBaseImponible?: ConceptoVenta[];
   totales: TotalesLiquidacion;
 }
 
@@ -26,6 +27,7 @@ const meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio
 
 export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver }: Props) {
   const navigate = useNavigate();
+  const esFormatoNuevo = usaFormatoNuevo(periodo);
   const mesStr = String(periodo.mes).padStart(2, '0');
   const periodoTributario = `${mesStr}-${periodo.año}`;
   
@@ -72,11 +74,29 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
     return num.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const { facturas, boletas, notasDebito, notasCredito, ventasNoGravadas, totales } = datosLiquidacion;
+  const formatParentheses = (num: number) => {
+    const abs = Math.abs(num);
+    return `(${abs.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+  };
 
-  // Subtotal antes de NC
+  const { facturas, boletas, notasDebito, notasCredito, ventasNoGravadas, descuentoBaseImponible, totales } = datosLiquidacion;
+
+  // Subtotal antes de NC (formato antiguo)
   const subtotalBasePositivos = totales.facturas.base + totales.boletas.base + totales.notasDebito.base;
   const subtotalIgvPositivos = totales.facturas.igv + totales.boletas.igv + totales.notasDebito.igv;
+
+  const tituloSeccion = esFormatoNuevo ? 'OPERACIONES GRAVADAS' : 'VENTAS GRAVADAS';
+
+  /** Renderiza filas de datos comunes para ambos formatos */
+  const renderFilas = (items: ConceptoVenta[], colorRojo = false) => 
+    items.map((item) => (
+      <tr key={item.id} className="border-b border-muted/20">
+        <td className="py-1 px-2" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{item.concepto}</td>
+        <td className="py-1 px-2 text-xs" style={{ color: colorRojo || item.isNegative ? '#C62828' : '#1A73E8' }}>{item.rango}</td>
+        <td className="py-1 px-2 text-right font-mono" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{formatNumber(item.base)}</td>
+        <td className="py-1 px-2 text-right font-mono" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{formatNumber(item.igv)}</td>
+      </tr>
+    ));
 
   return (
     <div className="min-h-screen p-6 bg-background animate-fade-in">
@@ -105,7 +125,6 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
 
                 {/* Bloques de información */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
-                  {/* Periodo tributario */}
                   <div className="text-center">
                     <div className="voucher-box mb-2">
                       <p className="text-xs font-semibold">PERIODO</p>
@@ -116,7 +135,6 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                     </div>
                   </div>
 
-                  {/* Código del tributo */}
                   <div className="text-center">
                     <div className="voucher-box mb-2">
                       <p className="text-xs font-semibold">CODIGO</p>
@@ -129,7 +147,6 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                     </div>
                   </div>
 
-                  {/* Importe a pagar */}
                   <div className="text-center">
                     <div className="voucher-box mb-2">
                       <p className="text-xs font-semibold">IMPORTE A</p>
@@ -187,9 +204,9 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                   <p className="text-xs text-muted-foreground">(En soles)</p>
                 </div>
 
-                {/* VENTAS GRAVADAS */}
+                {/* SECCIÓN PRINCIPAL: OPERACIONES/VENTAS GRAVADAS */}
                 <div className="mb-6">
-                  <h3 className="font-bold text-sm border-b pb-2 mb-3">VENTAS GRAVADAS</h3>
+                  <h3 className="font-bold text-sm border-b pb-2 mb-3">{tituloSeccion}</h3>
                   
                   <table className="w-full text-sm border-collapse">
                     <thead>
@@ -197,91 +214,186 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                         <th className="text-left py-2 px-2 font-semibold">Concepto</th>
                         <th className="text-left py-2 px-2 font-semibold">Rango de comprobantes</th>
                         <th className="text-right py-2 px-2 font-semibold">Base imponible</th>
-                        <th className="text-right py-2 px-2 font-semibold">IGV 18%</th>
+                        <th className="text-right py-2 px-2 font-semibold">{esFormatoNuevo ? 'TASA 18%' : 'IGV 18%'}</th>
+                        {esFormatoNuevo && <th className="text-right py-2 px-2 font-semibold">IMPUESTO TOTAL</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {/* Facturas */}
                       <tr className="border-b border-muted/30">
-                        <td colSpan={4} className="py-1 px-2 font-semibold text-xs text-muted-foreground">FACTURAS</td>
+                        <td colSpan={esFormatoNuevo ? 5 : 4} className="py-1 px-2 font-semibold text-xs text-muted-foreground">C / Factura</td>
                       </tr>
-                      {facturas.map((item) => (
-                        <tr key={item.id} className="border-b border-muted/20">
-                          <td className="py-1 px-2">{item.concepto}</td>
-                          <td className="py-1 px-2 text-xs" style={{ color: '#1A73E8' }}>{item.rango}</td>
-                          <td className="py-1 px-2 text-right font-mono">{formatNumber(item.base)}</td>
-                          <td className="py-1 px-2 text-right font-mono">{formatNumber(item.igv)}</td>
-                        </tr>
-                      ))}
+                      {renderFilas(facturas)}
 
                       {/* Boletas */}
                       <tr className="border-b border-muted/30">
-                        <td colSpan={4} className="py-1 px-2 font-semibold text-xs text-muted-foreground">BOLETAS</td>
+                        <td colSpan={esFormatoNuevo ? 5 : 4} className="py-1 px-2 font-semibold text-xs text-muted-foreground">C / Boleta de Venta</td>
                       </tr>
-                      {boletas.map((item) => (
-                        <tr key={item.id} className="border-b border-muted/20">
-                          <td className="py-1 px-2">{item.concepto}</td>
-                          <td className="py-1 px-2 text-xs" style={{ color: '#1A73E8' }}>{item.rango}</td>
-                          <td className="py-1 px-2 text-right font-mono">{formatNumber(item.base)}</td>
-                          <td className="py-1 px-2 text-right font-mono">{formatNumber(item.igv)}</td>
-                        </tr>
-                      ))}
+                      {renderFilas(boletas)}
 
                       {/* Notas de Débito */}
                       <tr className="border-b border-muted/30">
-                        <td colSpan={4} className="py-1 px-2 font-semibold text-xs text-muted-foreground">NOTAS DE DÉBITO</td>
+                        <td colSpan={esFormatoNuevo ? 5 : 4} className="py-1 px-2 font-semibold text-xs text-muted-foreground">C / Nota de Débito</td>
                       </tr>
-                      {notasDebito.map((item) => (
-                        <tr key={item.id} className="border-b border-muted/20">
-                          <td className="py-1 px-2">{item.concepto}</td>
-                          <td className="py-1 px-2 text-xs" style={{ color: '#1A73E8' }}>{item.rango}</td>
-                          <td className="py-1 px-2 text-right font-mono">{formatNumber(item.base)}</td>
-                          <td className="py-1 px-2 text-right font-mono">{formatNumber(item.igv)}</td>
-                        </tr>
-                      ))}
+                      {renderFilas(notasDebito)}
 
-                      {/* Subtotal Positivos */}
-                      <tr className="border-b-2 bg-muted/20">
-                        <td colSpan={2} className="py-2 px-2 text-right font-semibold">Subtotal Base:</td>
-                        <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(subtotalBasePositivos)}</td>
-                        <td className="py-2 px-2 text-right">
-                          <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(subtotalIgvPositivos)}</span>
-                        </td>
-                      </tr>
+                      {esFormatoNuevo ? (
+                        <>
+                          {/* Formato nuevo: NC dentro de operaciones */}
+                          <tr className="border-b border-muted/30">
+                            <td colSpan={5} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>C / Nota de Crédito</td>
+                          </tr>
+                          {notasCredito.map((item) => (
+                            <tr key={item.id} className="border-b border-muted/20">
+                              <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
+                              <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
+                              <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
+                              <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
+                              <td></td>
+                            </tr>
+                          ))}
 
-                      {/* Notas de Crédito */}
-                      <tr className="border-b border-muted/30">
-                        <td colSpan={4} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>NOTAS DE CRÉDITO</td>
-                      </tr>
-                      {notasCredito.map((item) => (
-                        <tr key={item.id} className="border-b border-muted/20">
-                          <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
-                          <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
-                          <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
-                          <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
-                        </tr>
-                      ))}
+                          {/* Código 100 - subtotal operaciones */}
+                          <tr className="border-b-2 bg-muted/20">
+                            <td className="py-2 px-2"></td>
+                            <td className="py-2 px-2 text-center">
+                              <span className="border border-foreground px-3 py-1 font-mono font-bold">100</span>
+                            </td>
+                            <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(totales.baseGravada)}</td>
+                            <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(totales.igvGravado)}</td>
+                            <td></td>
+                          </tr>
 
-                      {/* Subtotal Notas de Crédito */}
-                      <tr className="border-b-2 bg-muted/20">
-                        <td colSpan={2} className="py-2 px-2 text-right font-semibold" style={{ color: '#C62828' }}>Subtotal Base:</td>
-                        <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>{formatNumber(totales.notasCredito.base)}</td>
-                        <td className="py-2 px-2 text-right">
-                          <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#FFF3A3', color: '#C62828' }}>{formatNumber(totales.notasCredito.igv)}</span>
-                        </td>
-                      </tr>
+                          {/* Ajuste */}
+                          <tr className="border-b border-muted/20">
+                            <td className="py-1 px-2 text-sm">Ajuste a la base de cálculo por redondeos</td>
+                            <td></td>
+                            <td className="py-1 px-2 text-right font-mono">0.00</td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                          <tr className="border-b border-muted/20">
+                            <td className="py-1 px-2"></td>
+                            <td className="py-1 px-2 text-sm text-muted-foreground">no aplicable</td>
+                            <td className="py-1 px-2 text-right font-mono">-</td>
+                            <td className="py-1 px-2 text-right font-mono">-</td>
+                            <td></td>
+                          </tr>
 
-                      {/* Total Neto */}
-                      <tr className="bg-muted/50 font-bold">
-                        <td colSpan={2} className="py-3 px-2 text-right">TOTAL NETO:</td>
-                        <td className="py-3 px-2 text-right font-mono">{formatNumber(totales.baseNeta)}</td>
-                        <td className="py-3 px-2 text-right">
-                          <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(totales.igvNeto)}</span>
-                        </td>
-                      </tr>
+                          {/* Total operaciones con impuesto total */}
+                          <tr className="border-b-2 border-foreground bg-muted/30 font-bold">
+                            <td colSpan={2} className="py-2 px-2"></td>
+                            <td className="py-2 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(totales.baseGravada)}</td>
+                            <td className="py-2 px-2 text-right font-mono">{formatNumber(totales.igvGravado)}</td>
+                            <td className="py-2 px-2 text-right">
+                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#C62828', color: 'white' }}>{formatNumber(totales.igvGravado)}</span>
+                            </td>
+                          </tr>
+                        </>
+                      ) : (
+                        <>
+                          {/* Formato antiguo: subtotal positivos */}
+                          <tr className="border-b-2 bg-muted/20">
+                            <td colSpan={2} className="py-2 px-2 text-right font-semibold">Subtotal Base:</td>
+                            <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(subtotalBasePositivos)}</td>
+                            <td className="py-2 px-2 text-right">
+                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(subtotalIgvPositivos)}</span>
+                            </td>
+                          </tr>
+
+                          {/* Notas de Crédito separadas */}
+                          <tr className="border-b border-muted/30">
+                            <td colSpan={4} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>NOTAS DE CRÉDITO</td>
+                          </tr>
+                          {notasCredito.map((item) => (
+                            <tr key={item.id} className="border-b border-muted/20">
+                              <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
+                              <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
+                              <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
+                              <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
+                            </tr>
+                          ))}
+
+                          {/* Subtotal NC */}
+                          <tr className="border-b-2 bg-muted/20">
+                            <td colSpan={2} className="py-2 px-2 text-right font-semibold" style={{ color: '#C62828' }}>Subtotal Base:</td>
+                            <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>{formatNumber(totales.notasCredito.base)}</td>
+                            <td className="py-2 px-2 text-right">
+                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#FFF3A3', color: '#C62828' }}>{formatNumber(totales.notasCredito.igv)}</span>
+                            </td>
+                          </tr>
+
+                          {/* Total Neto */}
+                          <tr className="bg-muted/50 font-bold">
+                            <td colSpan={2} className="py-3 px-2 text-right">TOTAL NETO:</td>
+                            <td className="py-3 px-2 text-right font-mono">{formatNumber(totales.baseNeta)}</td>
+                            <td className="py-3 px-2 text-right">
+                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(totales.igvNeto)}</span>
+                            </td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {/* DESCUENTO DE BASE IMPONIBLE (solo formato nuevo) */}
+                {esFormatoNuevo && descuentoBaseImponible && descuentoBaseImponible.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-bold text-sm border-b pb-2 mb-3">Descuento de Base Imponible (meses anteriores)</h3>
+                    
+                    <table className="w-full text-sm border-collapse">
+                      <tbody>
+                        <tr className="border-b border-muted/30">
+                          <td colSpan={5} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>C / Nota de Crédito</td>
+                        </tr>
+                        {descuentoBaseImponible.map((item) => (
+                          <tr key={item.id} className="border-b border-muted/20">
+                            <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
+                            <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
+                            <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
+                            <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
+                            <td></td>
+                          </tr>
+                        ))}
+
+                        {/* Código 102 */}
+                        <tr className="border-b-2 bg-muted/20">
+                          <td className="py-2 px-2"></td>
+                          <td className="py-2 px-2 text-center">
+                            <span className="border border-foreground px-3 py-1 font-mono font-bold">102</span>
+                          </td>
+                          <td className="py-2 px-2 text-right font-mono font-semibold" style={{ backgroundColor: '#FFEB3B', color: '#C62828' }}>
+                            {formatParentheses(totales.descuentoBase?.base || 0)}
+                          </td>
+                          <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>
+                            {formatParentheses(totales.descuentoBase?.igv || 0)}
+                          </td>
+                          <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>
+                            ({Math.abs(totales.impuestoTotalDescuento || 0).toLocaleString('es-PE')})
+                          </td>
+                        </tr>
+
+                        {/* Ajuste */}
+                        <tr className="border-b border-muted/20">
+                          <td className="py-1 px-2 text-sm">Ajuste a la base de cálculo por redondeos</td>
+                          <td></td>
+                          <td className="py-1 px-2 text-right font-mono">0.00</td>
+                          <td></td>
+                          <td></td>
+                        </tr>
+
+                        {/* Total Neto */}
+                        <tr className="bg-muted/50 font-bold">
+                          <td colSpan={2} className="py-3 px-2 text-right">TOTAL NETO:</td>
+                          <td className="py-3 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(totales.baseNeta)}</td>
+                          <td></td>
+                          <td className="py-3 px-2 text-right font-mono">{formatNumber(totales.igvNeto)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
                 {/* VENTAS NO GRAVADAS */}
                 <div className="mb-6">
@@ -304,12 +416,38 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                         </tr>
                       ))}
                       <tr className="bg-muted/20 font-semibold">
-                        <td colSpan={2} className="py-2 px-2 text-right">Total Base No Gravada:</td>
-                        <td className="py-2 px-2 text-right font-mono">{formatNumber(totales.noGravadas.base)}</td>
+                        <td className="py-2 px-2">Total Ventas no gravadas</td>
+                        <td className="py-2 px-2 text-center">
+                          {esFormatoNuevo && <span className="border border-foreground px-3 py-1 font-mono font-bold">109</span>}
+                        </td>
+                        <td className="py-2 px-2 text-right font-mono" style={esFormatoNuevo ? { color: '#C62828' } : undefined}>{formatNumber(totales.noGravadas.base)}</td>
                       </tr>
+                      {esFormatoNuevo && (
+                        <>
+                          <tr className="bg-muted/10">
+                            <td className="py-2 px-2 font-semibold">Coeficiente</td>
+                            <td className="py-2 px-2 text-center">
+                              <span className="border border-foreground px-3 py-1 font-mono font-bold">173</span>
+                            </td>
+                            <td className="py-2 px-2 text-right">
+                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#A5D6A7' }}>0.0000</span>
+                            </td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {/* TOTAL NETO VENTAS (solo formato nuevo) */}
+                {esFormatoNuevo && totales.totalNetoVentas !== undefined && (
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center py-3 px-4 rounded-lg" style={{ backgroundColor: '#C62828' }}>
+                      <h3 className="text-sm font-bold" style={{ color: 'white' }}>TOTAL NETO VENTAS {meses[periodo.mes].toUpperCase()} {periodo.año}</h3>
+                      <span className="text-lg font-bold font-mono" style={{ color: 'white' }}>{formatNumber(totales.totalNetoVentas)}</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* IMPORTE A PAGAR */}
                 <div className="border-2 border-foreground rounded-lg p-4 mt-6">

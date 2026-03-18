@@ -10,6 +10,7 @@ interface DatosParaPagoFacil {
   notasDebito: ConceptoVenta[];
   notasCredito: ConceptoVenta[];
   ventasNoGravadas: ConceptoVenta[];
+  descuentoBaseImponible?: ConceptoVenta[];
   totales: TotalesLiquidacion;
 }
 
@@ -45,6 +46,7 @@ export function LiquidacionIGV() {
       )}
       {pantallaActiva === 'liquidacion' && (
         <PantallaLiquidacion
+          key={`${periodo.año}-${periodo.mes}`}
           periodo={periodo}
           onVerPagoFacil={handleVerPagoFacil}
           onVolver={handleVolverSeleccion}

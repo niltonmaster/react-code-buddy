@@ -27,6 +27,11 @@ export interface TotalesLiquidacion {
   baseNeta: number;
   igvNeto: number;
   importePagar: number;
+  // Campos adicionales para formato nuevo (Feb 2026+)
+  descuentoBase?: { base: number; igv: number };
+  impuestoTotalOperaciones?: number;
+  impuestoTotalDescuento?: number;
+  totalNetoVentas?: number;
 }
 
 export interface PeriodoSeleccionado {
@@ -35,3 +40,11 @@ export interface PeriodoSeleccionado {
 }
 
 export type PantallaActiva = 'seleccion' | 'liquidacion' | 'pagoFacil';
+
+/** Determina si el periodo usa el formato nuevo (con Descuento de Base Imponible) */
+export function usaFormatoNuevo(periodo: PeriodoSeleccionado): boolean {
+  // Feb 2026 en adelante usa formato nuevo
+  if (periodo.año > 2026) return true;
+  if (periodo.año === 2026 && periodo.mes >= 2) return true;
+  return false;
+}

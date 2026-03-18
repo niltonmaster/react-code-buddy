@@ -17,8 +17,11 @@ const meses = [
 
 const años = [2023, 2024, 2025, 2026];
 
-// Periodo con información cargada y conciliada (simulado)
-const PERIODO_DISPONIBLE = { año: 2025, mes: 9 }; // Setiembre 2025
+// Periodos con información cargada y conciliada (simulado)
+const PERIODOS_DISPONIBLES = [
+  { año: 2025, mes: 9 },  // Setiembre 2025
+  { año: 2026, mes: 2 },  // Febrero 2026
+];
 
 export function PantallaSeleccion({ onGenerarLiquidacion }: Props) {
   const [año, setAño] = useState<number>(2025);
@@ -26,7 +29,7 @@ export function PantallaSeleccion({ onGenerarLiquidacion }: Props) {
   const [mostrarAdvertencia, setMostrarAdvertencia] = useState(false);
   const { toast } = useToast();
 
-  const periodoDisponible = año === PERIODO_DISPONIBLE.año && mes === PERIODO_DISPONIBLE.mes;
+  const periodoDisponible = PERIODOS_DISPONIBLES.some(p => p.año === año && p.mes === mes);
 
   const handleGenerar = () => {
     if (periodoDisponible) {
