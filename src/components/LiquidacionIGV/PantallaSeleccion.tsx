@@ -17,8 +17,11 @@ const meses = [
 
 const años = [2023, 2024, 2025, 2026];
 
-// Periodo con información cargada y conciliada (simulado)
-const PERIODO_DISPONIBLE = { año: 2025, mes: 9 }; // Setiembre 2025
+// Periodos con información cargada y conciliada (simulado)
+const PERIODOS_DISPONIBLES = [
+  { año: 2025, mes: 9 },  // Setiembre 2025
+  { año: 2026, mes: 2 },  // Febrero 2026
+];
 
 export function PantallaSeleccion({ onGenerarLiquidacion }: Props) {
   const [año, setAño] = useState<number>(2025);
