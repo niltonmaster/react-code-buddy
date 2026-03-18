@@ -29,7 +29,7 @@ export function PantallaSeleccion({ onGenerarLiquidacion }: Props) {
   const [mostrarAdvertencia, setMostrarAdvertencia] = useState(false);
   const { toast } = useToast();
 
-  const periodoDisponible = año === PERIODO_DISPONIBLE.año && mes === PERIODO_DISPONIBLE.mes;
+  const periodoDisponible = PERIODOS_DISPONIBLES.some(p => p.año === año && p.mes === mes);
 
   const handleGenerar = () => {
     if (periodoDisponible) {
