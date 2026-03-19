@@ -253,41 +253,57 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                             </tr>
                           ))}
 
-                          {/* Código 100 - subtotal operaciones */}
-                          <tr className="border-b-2 bg-muted/20">
-                            <td className="py-2 px-2"></td>
-                            <td className="py-2 px-2 text-center">
-                              <span className="border border-foreground px-3 py-1 font-mono font-bold">100</span>
-                            </td>
-                            <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(totales.baseGravada)}</td>
+                          {/* Subtotal Operaciones Gravadas (positivo + NC) */}
+                          <tr className="border-t-2 border-b border-muted/40">
+                            <td colSpan={2} className="py-2 px-2 text-right font-semibold text-sm">Subtotal Operaciones Gravadas:</td>
+                            <td className="py-2 px-2 text-right font-mono font-semibold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(totales.baseGravada)}</td>
                             <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(totales.igvGravado)}</td>
-                            <td></td>
+                            <td className="py-2 px-2 text-right font-mono font-bold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(totales.igvGravado)}</td>
                           </tr>
 
-                          {/* Ajuste */}
-                          <tr className="border-b border-muted/20">
-                            <td className="py-1 px-2 text-sm">Ajuste a la base de cálculo por redondeos</td>
-                            <td></td>
-                            <td className="py-1 px-2 text-right font-mono">0.00</td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                          <tr className="border-b border-muted/20">
-                            <td className="py-1 px-2"></td>
-                            <td className="py-1 px-2 text-sm text-muted-foreground">no aplicable</td>
-                            <td className="py-1 px-2 text-right font-mono">-</td>
-                            <td className="py-1 px-2 text-right font-mono">-</td>
-                            <td></td>
-                          </tr>
+                          {/* Separación visual + Descuento de Base Imponible */}
+                          {descuentoBaseImponible && descuentoBaseImponible.length > 0 && (
+                            <>
+                              <tr>
+                                <td colSpan={5} className="py-3 px-2 font-bold text-sm border-b" style={{ color: '#C62828' }}>
+                                  Descuento de Base Imponible (meses anteriores)
+                                </td>
+                              </tr>
+                              <tr className="border-b border-muted/30">
+                                <td colSpan={5} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>C / Nota de Crédito</td>
+                              </tr>
+                              {descuentoBaseImponible.map((item) => (
+                                <tr key={item.id} className="border-b border-muted/20">
+                                  <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
+                                  <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
+                                  <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
+                                  <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
+                                  <td></td>
+                                </tr>
+                              ))}
 
-                          {/* Total operaciones con impuesto total */}
-                          <tr className="border-b-2 border-foreground bg-muted/30 font-bold">
-                            <td colSpan={2} className="py-2 px-2"></td>
-                            <td className="py-2 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(totales.baseGravada)}</td>
-                            <td className="py-2 px-2 text-right font-mono">{formatNumber(totales.igvGravado)}</td>
-                            <td className="py-2 px-2 text-right">
-                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#C62828', color: 'white' }}>{formatNumber(totales.igvGravado)}</span>
-                            </td>
+                              {/* Subtotal Descuento */}
+                              <tr className="border-t-2 border-b border-muted/40">
+                                <td colSpan={2} className="py-2 px-2 text-right font-semibold text-sm" style={{ color: '#C62828' }}>Subtotal Descuento:</td>
+                                <td className="py-2 px-2 text-right font-mono font-semibold" style={{ backgroundColor: '#FFF3A3', color: '#C62828' }}>
+                                  {formatParentheses(totales.descuentoBase?.base || 0)}
+                                </td>
+                                <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>
+                                  {formatParentheses(totales.descuentoBase?.igv || 0)}
+                                </td>
+                                <td className="py-2 px-2 text-right font-mono font-bold" style={{ backgroundColor: '#FFF3A3', color: '#C62828' }}>
+                                  ({Math.abs(totales.impuestoTotalDescuento || 0).toLocaleString('es-PE')})
+                                </td>
+                              </tr>
+                            </>
+                          )}
+
+                          {/* TOTAL NETO */}
+                          <tr className="border-t-2 border-foreground" style={{ backgroundColor: 'hsl(var(--muted) / 0.6)' }}>
+                            <td colSpan={2} className="py-3 px-2 text-right font-bold text-base">TOTAL NETO:</td>
+                            <td className="py-3 px-2 text-right font-mono font-bold text-base">{formatNumber(totales.baseNeta)}</td>
+                            <td></td>
+                            <td className="py-3 px-2 text-right font-mono font-bold text-base">{formatNumber(totales.igvNeto)}</td>
                           </tr>
                         </>
                       ) : (
@@ -336,64 +352,6 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                     </tbody>
                   </table>
                 </div>
-
-                {/* DESCUENTO DE BASE IMPONIBLE (solo formato nuevo) */}
-                {esFormatoNuevo && descuentoBaseImponible && descuentoBaseImponible.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-bold text-sm border-b pb-2 mb-3">Descuento de Base Imponible (meses anteriores)</h3>
-                    
-                    <table className="w-full text-sm border-collapse">
-                      <tbody>
-                        <tr className="border-b border-muted/30">
-                          <td colSpan={5} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>C / Nota de Crédito</td>
-                        </tr>
-                        {descuentoBaseImponible.map((item) => (
-                          <tr key={item.id} className="border-b border-muted/20">
-                            <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
-                            <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
-                            <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
-                            <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
-                            <td></td>
-                          </tr>
-                        ))}
-
-                        {/* Código 102 */}
-                        <tr className="border-b-2 bg-muted/20">
-                          <td className="py-2 px-2"></td>
-                          <td className="py-2 px-2 text-center">
-                            <span className="border border-foreground px-3 py-1 font-mono font-bold">102</span>
-                          </td>
-                          <td className="py-2 px-2 text-right font-mono font-semibold" style={{ backgroundColor: '#FFEB3B', color: '#C62828' }}>
-                            {formatParentheses(totales.descuentoBase?.base || 0)}
-                          </td>
-                          <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>
-                            {formatParentheses(totales.descuentoBase?.igv || 0)}
-                          </td>
-                          <td className="py-2 px-2 text-right font-mono font-semibold" style={{ color: '#C62828' }}>
-                            ({Math.abs(totales.impuestoTotalDescuento || 0).toLocaleString('es-PE')})
-                          </td>
-                        </tr>
-
-                        {/* Ajuste */}
-                        <tr className="border-b border-muted/20">
-                          <td className="py-1 px-2 text-sm">Ajuste a la base de cálculo por redondeos</td>
-                          <td></td>
-                          <td className="py-1 px-2 text-right font-mono">0.00</td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-
-                        {/* Total Neto */}
-                        <tr className="bg-muted/50 font-bold">
-                          <td colSpan={2} className="py-3 px-2 text-right">TOTAL NETO:</td>
-                          <td className="py-3 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(totales.baseNeta)}</td>
-                          <td></td>
-                          <td className="py-3 px-2 text-right font-mono">{formatNumber(totales.igvNeto)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
 
                 {/* VENTAS NO GRAVADAS */}
                 <div className="mb-6">
