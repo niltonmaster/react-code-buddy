@@ -406,17 +406,23 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                 {esFormatoNuevo && (
                   <div className="mb-6">
                     <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr style={{ height: 0, visibility: 'collapse' as any }}>
+                          <th className="py-0 px-2"></th>
+                          <th className="py-0 px-2"></th>
+                          <th className="py-0 px-2"></th>
+                          <th className="py-0 px-2"></th>
+                          <th className="py-0 px-2"></th>
+                        </tr>
+                      </thead>
                       <tbody>
                         <tr style={{ borderTop: '1.5px solid hsl(var(--muted-foreground) / 0.5)' }}>
-                          <td className="py-3 px-2 font-bold text-base">TOTAL NETO VENTAS {meses[periodo.mes].toUpperCase()} {periodo.año}</td>
-                          <td></td>
+                          <td colSpan={2} className="py-3 px-2 font-bold text-base">TOTAL NETO VENTAS {meses[periodo.mes].toUpperCase()} {periodo.año}</td>
                           <td className="py-3 px-2 text-right font-mono font-bold text-base" style={{ backgroundColor: '#FFF3A3' }}>
                             {formatNumber(totales.baseNeta + totales.noGravadas.base)}
                           </td>
                           <td></td>
-                          <td className="py-3 px-2 text-right font-mono font-bold text-base" style={{ backgroundColor: '#FFF3A3' }}>
-                            {formatNumber(totales.igvNeto)}
-                          </td>
+                          <td></td>
                         </tr>
                       </tbody>
                     </table>
