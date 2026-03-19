@@ -87,16 +87,21 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
 
   const tituloSeccion = esFormatoNuevo ? 'OPERACIONES GRAVADAS' : 'VENTAS GRAVADAS';
 
+  /** Checks if all monetary values are zero */
+  const esFilaCero = (item: ConceptoVenta) => item.base === 0 && item.igv === 0;
+
   /** Renderiza filas de datos comunes para ambos formatos */
-  const renderFilas = (items: ConceptoVenta[], colorRojo = false) => 
-    items.map((item) => (
-      <tr key={item.id} className="border-b border-muted/20">
-        <td className="py-1 px-2" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{item.concepto}</td>
-        <td className="py-1 px-2 text-xs" style={{ color: colorRojo || item.isNegative ? '#C62828' : '#1A73E8' }}>{item.rango}</td>
-        <td className="py-1 px-2 text-right font-mono" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{formatNumber(item.base)}</td>
-        <td className="py-1 px-2 text-right font-mono" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{formatNumber(item.igv)}</td>
-      </tr>
-    ));
+  const renderFilas = (items: ConceptoVenta[], colorRojo = false, ocultarCeros = false) => 
+    items
+      .filter((item) => !(ocultarCeros && esFilaCero(item)))
+      .map((item) => (
+        <tr key={item.id} className="border-b border-muted/20">
+          <td className="py-1 px-2" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{item.concepto}</td>
+          <td className="py-1 px-2 text-xs" style={{ color: colorRojo || item.isNegative ? '#C62828' : '#1A73E8' }}>{item.rango}</td>
+          <td className="py-1 px-2 text-right font-mono" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{formatNumber(item.base)}</td>
+          <td className="py-1 px-2 text-right font-mono" style={colorRojo || item.isNegative ? { color: '#C62828' } : undefined}>{formatNumber(item.igv)}</td>
+        </tr>
+      ));
 
   return (
     <div className="min-h-screen p-6 bg-background animate-fade-in">
