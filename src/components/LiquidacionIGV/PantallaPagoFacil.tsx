@@ -407,67 +407,33 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                   </table>
                 </div>
 
-                {/* VENTAS NO GRAVADAS */}
+                {/* VENTAS NO GRAVADAS — solo formato antiguo (en formato nuevo está dentro de la tabla principal) */}
+                {!esFormatoNuevo && (
                 <div className="mb-6">
                   <h3 className="font-bold text-sm border-b pb-2 mb-3">VENTAS NO GRAVADAS</h3>
-                  
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="border-b bg-muted/30">
                         <th className="text-left py-2 px-2 font-semibold">Concepto</th>
                         <th className="text-left py-2 px-2 font-semibold">Rango de comprobantes</th>
                         <th className="text-right py-2 px-2 font-semibold">Base imponible</th>
-                        {esFormatoNuevo && <th className="text-right py-2 px-2 font-semibold"></th>}
-                        {esFormatoNuevo && <th className="text-right py-2 px-2 font-semibold"></th>}
                       </tr>
                     </thead>
                     <tbody>
-                      {ventasNoGravadas
-                        .filter((item) => !(esFormatoNuevo && item.base === 0))
-                        .map((item) => (
+                      {ventasNoGravadas.map((item) => (
                         <tr key={item.id} className="border-b border-muted/20">
                           <td className="py-1 px-2">{item.concepto}</td>
                           <td className="py-1 px-2 text-xs" style={{ color: '#1A73E8' }}>{item.rango}</td>
                           <td className="py-1 px-2 text-right font-mono">{formatNumber(item.base)}</td>
-                          {esFormatoNuevo && <td></td>}
-                          {esFormatoNuevo && <td></td>}
                         </tr>
                       ))}
                       <tr className="bg-muted/20 font-semibold">
                         <td colSpan={2} className="py-2 px-2">Total Ventas no gravadas</td>
-                        <td className="py-2 px-2 text-right font-mono" style={esFormatoNuevo ? { backgroundColor: '#FFF3A3' } : undefined}>{formatNumber(totales.noGravadas.base)}</td>
-                        {esFormatoNuevo && <td></td>}
-                        {esFormatoNuevo && <td></td>}
+                        <td className="py-2 px-2 text-right font-mono">{formatNumber(totales.noGravadas.base)}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-
-                {/* TOTAL NETO VENTAS (solo formato nuevo) */}
-                {esFormatoNuevo && (
-                  <div className="mb-6">
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr style={{ height: 0, visibility: 'collapse' as any }}>
-                          <th className="py-0 px-2"></th>
-                          <th className="py-0 px-2"></th>
-                          <th className="py-0 px-2"></th>
-                          <th className="py-0 px-2"></th>
-                          <th className="py-0 px-2"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={{ borderTop: '1.5px solid hsl(var(--muted-foreground) / 0.5)' }}>
-                          <td colSpan={2} className="py-3 px-2 font-bold text-base">TOTAL NETO VENTAS {meses[periodo.mes].toUpperCase()} {periodo.año}</td>
-                          <td className="py-3 px-2 text-right font-mono font-bold text-base" style={{ backgroundColor: '#FFF3A3' }}>
-                            {formatNumber(totales.baseNeta + totales.noGravadas.base)}
-                          </td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 )}
 
                 {/* IMPORTE A PAGAR */}
