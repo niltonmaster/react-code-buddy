@@ -248,48 +248,56 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                           <tr className="border-b border-muted/30">
                             <td colSpan={5} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>C / Nota de Crédito</td>
                           </tr>
-                          {notasCredito.map((item) => (
-                            <tr key={item.id} className="border-b border-muted/20">
-                              <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
-                              <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
-                              <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
-                              <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
-                              <td></td>
-                            </tr>
-                          ))}
+                          {notasCredito
+                            .filter((item) => !esFilaCero(item))
+                            .map((item) => (
+                              <tr key={item.id} className="border-b border-muted/20">
+                                <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
+                                <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
+                                <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
+                                <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
+                                <td></td>
+                              </tr>
+                            ))}
 
-                          {/* Subtotal Operaciones Gravadas (positivo + NC) */}
-                          <tr className="border-t-2 border-b border-muted/40">
-                            <td colSpan={2} className="py-2 px-2 text-right font-semibold text-sm">Subtotal Operaciones Gravadas:</td>
+                          {/* Subtotal Operaciones Gravadas */}
+                          <tr style={{ backgroundColor: 'hsl(var(--muted) / 0.4)' }}>
+                            <td colSpan={2} className="py-2 px-2 text-right font-semibold text-sm">Subtotal</td>
                             <td className="py-2 px-2 text-right font-mono font-semibold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(totales.baseGravada)}</td>
                             <td className="py-2 px-2 text-right font-mono font-semibold">{formatNumber(totales.igvGravado)}</td>
                             <td className="py-2 px-2 text-right font-mono font-bold" style={{ backgroundColor: '#FFF3A3' }}>{formatNumber(totales.igvGravado)}</td>
                           </tr>
 
-                          {/* Separación visual + Descuento de Base Imponible */}
+                          {/* Descuento de Base Imponible */}
                           {descuentoBaseImponible && descuentoBaseImponible.length > 0 && (
                             <>
+                              {/* Línea divisoria ENCIMA del subtítulo */}
                               <tr>
-                                <td colSpan={5} className="py-3 px-2 font-bold text-sm border-b" style={{ color: '#C62828' }}>
+                                <td colSpan={5} style={{ borderTop: '1.5px solid hsl(var(--muted-foreground) / 0.4)', padding: 0 }}></td>
+                              </tr>
+                              <tr>
+                                <td colSpan={5} className="py-2 px-2 font-bold text-sm">
                                   Descuento de Base Imponible (meses anteriores)
                                 </td>
                               </tr>
                               <tr className="border-b border-muted/30">
                                 <td colSpan={5} className="py-1 px-2 font-semibold text-xs" style={{ color: '#C62828' }}>C / Nota de Crédito</td>
                               </tr>
-                              {descuentoBaseImponible.map((item) => (
-                                <tr key={item.id} className="border-b border-muted/20">
-                                  <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
-                                  <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
-                                  <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
-                                  <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
-                                  <td></td>
-                                </tr>
-                              ))}
+                              {descuentoBaseImponible
+                                .filter((item) => !esFilaCero(item))
+                                .map((item) => (
+                                  <tr key={item.id} className="border-b border-muted/20">
+                                    <td className="py-1 px-2" style={{ color: '#C62828' }}>{item.concepto}</td>
+                                    <td className="py-1 px-2 text-xs" style={{ color: '#C62828' }}>{item.rango}</td>
+                                    <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.base)}</td>
+                                    <td className="py-1 px-2 text-right font-mono" style={{ color: '#C62828' }}>{formatNumber(item.igv)}</td>
+                                    <td></td>
+                                  </tr>
+                                ))}
 
                               {/* Subtotal Descuento */}
-                              <tr className="border-t-2 border-b border-muted/40">
-                                <td colSpan={2} className="py-2 px-2 text-right font-semibold text-sm" style={{ color: '#C62828' }}>Subtotal Descuento:</td>
+                              <tr style={{ backgroundColor: 'hsl(var(--muted) / 0.4)' }}>
+                                <td colSpan={2} className="py-2 px-2 text-right font-semibold text-sm" style={{ color: '#C62828' }}>Subtotal</td>
                                 <td className="py-2 px-2 text-right font-mono font-semibold" style={{ backgroundColor: '#FFF3A3', color: '#C62828' }}>
                                   {formatParentheses(totales.descuentoBase?.base || 0)}
                                 </td>
@@ -297,14 +305,14 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                                   {formatParentheses(totales.descuentoBase?.igv || 0)}
                                 </td>
                                 <td className="py-2 px-2 text-right font-mono font-bold" style={{ backgroundColor: '#FFF3A3', color: '#C62828' }}>
-                                  ({Math.abs(totales.impuestoTotalDescuento || 0).toLocaleString('es-PE')})
+                                  {formatParentheses(totales.descuentoBase?.igv || 0)}
                                 </td>
                               </tr>
                             </>
                           )}
 
                           {/* TOTAL NETO */}
-                          <tr className="border-t-2 border-foreground" style={{ backgroundColor: 'hsl(var(--muted) / 0.6)' }}>
+                          <tr style={{ borderTop: '1.5px solid hsl(var(--muted-foreground) / 0.5)' }}>
                             <td colSpan={2} className="py-3 px-2 text-right font-bold text-base">TOTAL NETO:</td>
                             <td className="py-3 px-2 text-right font-mono font-bold text-base">{formatNumber(totales.baseNeta)}</td>
                             <td></td>
