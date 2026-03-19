@@ -95,7 +95,7 @@ export function PantallaLiquidacion({ periodo, onVerPagoFacil, onVolver }: Props
       const baseNeta = baseOperaciones + tDescuento.base;
       const igvNeto = igvOperaciones + tDescuento.igv;
       const importePagar = Math.round(igvNeto);
-      const totalNetoVentas = baseNeta + tNoGravadas.base;
+      const totalNetoVentas = baseNeta + igvNeto + tNoGravadas.base;
 
       return {
         facturas: tFacturas,
