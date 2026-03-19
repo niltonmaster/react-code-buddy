@@ -376,47 +376,50 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                         <th className="text-left py-2 px-2 font-semibold">Concepto</th>
                         <th className="text-left py-2 px-2 font-semibold">Rango de comprobantes</th>
                         <th className="text-right py-2 px-2 font-semibold">Base imponible</th>
+                        {esFormatoNuevo && <th className="text-right py-2 px-2 font-semibold"></th>}
+                        {esFormatoNuevo && <th className="text-right py-2 px-2 font-semibold"></th>}
                       </tr>
                     </thead>
                     <tbody>
-                      {ventasNoGravadas.map((item) => (
+                      {ventasNoGravadas
+                        .filter((item) => !(esFormatoNuevo && item.base === 0))
+                        .map((item) => (
                         <tr key={item.id} className="border-b border-muted/20">
                           <td className="py-1 px-2">{item.concepto}</td>
                           <td className="py-1 px-2 text-xs" style={{ color: '#1A73E8' }}>{item.rango}</td>
                           <td className="py-1 px-2 text-right font-mono">{formatNumber(item.base)}</td>
+                          {esFormatoNuevo && <td></td>}
+                          {esFormatoNuevo && <td></td>}
                         </tr>
                       ))}
                       <tr className="bg-muted/20 font-semibold">
-                        <td className="py-2 px-2">Total Ventas no gravadas</td>
-                        <td className="py-2 px-2 text-center">
-                          {esFormatoNuevo && <span className="border border-foreground px-3 py-1 font-mono font-bold">109</span>}
-                        </td>
-                        <td className="py-2 px-2 text-right font-mono" style={esFormatoNuevo ? { color: '#C62828' } : undefined}>{formatNumber(totales.noGravadas.base)}</td>
+                        <td colSpan={2} className="py-2 px-2">Total Ventas no gravadas</td>
+                        <td className="py-2 px-2 text-right font-mono" style={esFormatoNuevo ? { backgroundColor: '#FFF3A3' } : undefined}>{formatNumber(totales.noGravadas.base)}</td>
+                        {esFormatoNuevo && <td></td>}
+                        {esFormatoNuevo && <td></td>}
                       </tr>
-                      {esFormatoNuevo && (
-                        <>
-                          <tr className="bg-muted/10">
-                            <td className="py-2 px-2 font-semibold">Coeficiente</td>
-                            <td className="py-2 px-2 text-center">
-                              <span className="border border-foreground px-3 py-1 font-mono font-bold">173</span>
-                            </td>
-                            <td className="py-2 px-2 text-right">
-                              <span className="px-2 py-1 rounded font-mono font-bold" style={{ backgroundColor: '#A5D6A7' }}>0.0000</span>
-                            </td>
-                          </tr>
-                        </>
-                      )}
                     </tbody>
                   </table>
                 </div>
 
                 {/* TOTAL NETO VENTAS (solo formato nuevo) */}
-                {esFormatoNuevo && totales.totalNetoVentas !== undefined && (
+                {esFormatoNuevo && (
                   <div className="mb-6">
-                    <div className="flex justify-between items-center py-3 px-4 rounded-lg" style={{ backgroundColor: '#C62828' }}>
-                      <h3 className="text-sm font-bold" style={{ color: 'white' }}>TOTAL NETO VENTAS {meses[periodo.mes].toUpperCase()} {periodo.año}</h3>
-                      <span className="text-lg font-bold font-mono" style={{ color: 'white' }}>{formatNumber(totales.totalNetoVentas)}</span>
-                    </div>
+                    <table className="w-full text-sm border-collapse">
+                      <tbody>
+                        <tr style={{ borderTop: '1.5px solid hsl(var(--muted-foreground) / 0.5)' }}>
+                          <td className="py-3 px-2 font-bold text-base">TOTAL NETO VENTAS {meses[periodo.mes].toUpperCase()} {periodo.año}</td>
+                          <td></td>
+                          <td className="py-3 px-2 text-right font-mono font-bold text-base" style={{ backgroundColor: '#FFF3A3' }}>
+                            {formatNumber(totales.baseNeta + totales.noGravadas.base)}
+                          </td>
+                          <td></td>
+                          <td className="py-3 px-2 text-right font-mono font-bold text-base" style={{ backgroundColor: '#FFF3A3' }}>
+                            {formatNumber(totales.igvNeto)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
