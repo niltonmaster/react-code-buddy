@@ -429,7 +429,7 @@ export function PantallaPagoFacil({ periodo, importe, datosLiquidacion, onVolver
                     <h3 className="text-lg font-bold">IMPORTE A PAGAR</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold text-muted-foreground">S/</span>
-                      <div className="bg-highlight-yellow px-4 py-2 rounded border-2 border-foreground">
+                      <div className="px-4 py-2 rounded border-2 border-foreground">
                         <span className="text-2xl font-bold font-mono">{totales.importePagar.toLocaleString('es-PE')}</span>
                       </div>
                     </div>
